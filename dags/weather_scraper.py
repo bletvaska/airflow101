@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from airflow import DAG
@@ -32,6 +33,12 @@ def _filter_data(ti: TaskInstance):
     # create measurement from data
     measurement = Measurement(**data)
 
+    return measurement.dict()
+
+
+def _helper_operator(ti: TaskInstance):
+    payload = ti.xcom_pull(task_ids=['preprocess_data'])[0]
+    measurement = Measurement(**payload)
     print(measurement)
 
 
@@ -71,6 +78,11 @@ with DAG('openweathermap_scraper',
     data_preprocessor = PythonOperator(
         task_id='preprocess_data',
         python_callable=_filter_data
+    )
+
+    PythonOperator(
+        task_id='helper_operator',
+        python_callable=_helper_operator
     )
 
     service_availability >> scrape_data >> data_preprocessor >> task2 >> task3

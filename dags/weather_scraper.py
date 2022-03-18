@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from airflow import DAG
-
+from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
@@ -20,10 +20,11 @@ with DAG('openweathermap_scraper',
         http_conn_id='openweathermap_api',
         endpoint='/data/2.5/weather',
         data={
-            'q': 'kosice',
+            'q': Variable.get('openweathermap_query', default_var='kosice,sk'),
             'units': 'metric',
-            'appid': '08f5d8fd385c443eeff6608c643e0bc5'
-        }
+            'appid': Variable.get('openweathermap_appid')
+        },
+        log_response=True
     )
 
     service_availability = HttpSensor(
@@ -31,7 +32,7 @@ with DAG('openweathermap_scraper',
         http_conn_id='openweathermap_api',
         endpoint='/data/2.5/weather',
         request_params={
-            'appid': '08f5d8fd385c443eeff6608c643e0bc5'
+            'appid': Variable.get('openweathermap_appid')
         },
         extra_options={'check_response': False},
         poke_interval=10,

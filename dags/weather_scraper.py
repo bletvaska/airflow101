@@ -3,13 +3,15 @@ from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable, TaskInstance
+from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
+from airflow.providers.sqlite.operators.sqlite import SqliteOperator
 from pydantic import BaseModel
 
-EXPORT_CSV = Path('/airflow/export.csv')
+EXPORT_CSV = Path('/airflow/weather.csv')
 
 
 class Measurement(BaseModel):
@@ -105,4 +107,27 @@ with DAG('openweathermap_scraper',
         python_callable=_export_to_csv_file
     )
 
-    service_availability >> scrape_data >> data_preprocessor >> to_csv >> task2 >> task3
+    create_measurement_table = SqliteOperator(
+        task_id='create_measurement_table',
+        sqlite_conn_id='weather_data',
+        sql=r"""
+        CREATE TABLE IF NOT EXISTS Measurement (
+            id INT PRIMARY KEY,
+            dt INT,
+            temp FLOAT,
+            pressure INT,
+            humidity INT, 
+            wind FLOAT,
+            country TEXT,
+            city TEXT
+        );
+        """,
+    )
+
+    insert_measurement = BashOperator(
+        task_id='insert_measurement_to_db',
+        bash_command='date'
+    )
+
+    service_availability >> scrape_data >> data_preprocessor >> [to_csv, create_measurement_table]
+    create_measurement_table >> insert_measurement

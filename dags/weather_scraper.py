@@ -1,5 +1,5 @@
-import json
 from datetime import datetime
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable, TaskInstance
@@ -8,6 +8,8 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
 from pydantic import BaseModel
+
+EXPORT_CSV = Path('/airflow/export.csv')
 
 
 class Measurement(BaseModel):
@@ -18,6 +20,15 @@ class Measurement(BaseModel):
     wind: float
     country: str
     city: str
+
+    def csv(self, separator=','):
+        data = [str(self.dt), str(self.temp), str(self.pressure), str(self.humidity), str(self.wind), self.country,
+                self.city]
+        return separator.join(data)
+
+
+def _store_to_csv_file(ti: TaskInstance):
+    pass
 
 
 def _filter_data(ti: TaskInstance):
@@ -80,9 +91,14 @@ with DAG('openweathermap_scraper',
         python_callable=_filter_data
     )
 
-    PythonOperator(
-        task_id='helper_operator',
-        python_callable=_helper_operator
+    # PythonOperator(
+    #     task_id='helper_operator',
+    #     python_callable=_helper_operator
+    # )
+
+    to_csv = PythonOperator(
+        task_id='store_to_csv_file',
+        python_callable=_store_to_csv_file
     )
 
-    service_availability >> scrape_data >> data_preprocessor >> task2 >> task3
+    service_availability >> scrape_data >> data_preprocessor >> to_csv >> task2 >> task3

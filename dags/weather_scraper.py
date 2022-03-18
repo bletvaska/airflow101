@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.models import Variable
+from airflow.models import Variable, TaskInstance
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
@@ -19,22 +19,17 @@ class Measurement(BaseModel):
     city: str
 
 
-def _filter_data():
-    payload = {"coord": {"lon": 19.3034, "lat": 49.2098},
-               "weather": [{"id": 803, "main": "Clouds", "description": "broken clouds", "icon": "04d"}],
-               "base": "stations",
-               "main": {"temp": 8.87, "feels_like": 8.87, "temp_min": 4.35, "temp_max": 9.84, "pressure": 1038,
-                        "humidity": 61, "sea_level": 1038, "grnd_level": 975}, "visibility": 10000,
-               "wind": {"speed": 1.3, "deg": 285, "gust": 1.84}, "clouds": {"all": 74}, "dt": 1647605063,
-               "sys": {"type": 2, "id": 2043555, "country": "SK", "sunrise": 1647579027, "sunset": 1647622285},
-               "timezone": 3600, "id": 3060405, "name": "Dolný Kubín", "cod": 200}
+def _filter_data(ti: TaskInstance):
+    payload = ti.xcom_pull(task_ids=['scrape_weather_data'])[0]
 
+    # prepare data
     data = payload['main']
     data['dt'] = payload['dt']
     data['wind'] = payload['wind']['speed']
     data['country'] = payload['sys']['country']
     data['city'] = payload['name']
 
+    # create measurement from data
     measurement = Measurement(**data)
 
     print(measurement)
@@ -48,7 +43,7 @@ with DAG('openweathermap_scraper',
     task3 = DummyOperator(task_id='store_data')
 
     scrape_data = SimpleHttpOperator(
-        task_id='weather_scrape_data',
+        task_id='scrape_weather_data',
         method='GET',
         http_conn_id='openweathermap_api',
         endpoint='/data/2.5/weather',
@@ -57,6 +52,7 @@ with DAG('openweathermap_scraper',
             'units': 'metric',
             'appid': Variable.get('openweathermap_appid')
         },
+        response_filter=lambda response: response.json(),
         log_response=True
     )
 

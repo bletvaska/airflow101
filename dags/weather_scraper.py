@@ -6,10 +6,38 @@ from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
+from pydantic import BaseModel
+
+
+class Measurement(BaseModel):
+    dt: int
+    temp: float
+    pressure: int
+    humidity: int
+    wind: float
+    country: str
+    city: str
 
 
 def _filter_data():
-    print('Here we are' * 20)
+    payload = {"coord": {"lon": 19.3034, "lat": 49.2098},
+               "weather": [{"id": 803, "main": "Clouds", "description": "broken clouds", "icon": "04d"}],
+               "base": "stations",
+               "main": {"temp": 8.87, "feels_like": 8.87, "temp_min": 4.35, "temp_max": 9.84, "pressure": 1038,
+                        "humidity": 61, "sea_level": 1038, "grnd_level": 975}, "visibility": 10000,
+               "wind": {"speed": 1.3, "deg": 285, "gust": 1.84}, "clouds": {"all": 74}, "dt": 1647605063,
+               "sys": {"type": 2, "id": 2043555, "country": "SK", "sunrise": 1647579027, "sunset": 1647622285},
+               "timezone": 3600, "id": 3060405, "name": "Dolný Kubín", "cod": 200}
+
+    data = payload['main']
+    data['dt'] = payload['dt']
+    data['wind'] = payload['wind']['speed']
+    data['country'] = payload['sys']['country']
+    data['city'] = payload['name']
+
+    measurement = Measurement(**data)
+
+    print(measurement)
 
 
 with DAG('openweathermap_scraper',

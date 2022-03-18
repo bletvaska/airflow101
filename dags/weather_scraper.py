@@ -27,8 +27,12 @@ class Measurement(BaseModel):
         return separator.join(data)
 
 
-def _store_to_csv_file(ti: TaskInstance):
-    pass
+def _export_to_csv_file(ti: TaskInstance):
+    payload = ti.xcom_pull(task_ids=['preprocess_data'])[0]
+    measurement = Measurement(**payload)
+
+    with open(EXPORT_CSV, 'a') as file:
+        print(measurement.csv(), file=file)
 
 
 def _filter_data(ti: TaskInstance):
@@ -97,8 +101,8 @@ with DAG('openweathermap_scraper',
     # )
 
     to_csv = PythonOperator(
-        task_id='store_to_csv_file',
-        python_callable=_store_to_csv_file
+        task_id='export_to_csv',
+        python_callable=_export_to_csv_file
     )
 
     service_availability >> scrape_data >> data_preprocessor >> to_csv >> task2 >> task3

@@ -17,27 +17,12 @@ from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.sqlite.operators.sqlite import SqliteOperator
 from sqlmodel import SQLModel, Field, create_engine, Session
 
+from models import Measurement
+
 EXPORT_CSV = Path('/airflow/weather.csv')
 DB_URI = "sqlite:////airflow/database.db"
 
 logger = logging.getLogger(__name__)
-
-
-class Measurement(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    dt: int
-    temp: float
-    pressure: int
-    humidity: int
-    wind: float
-    country: str
-    city: str
-
-    def csv(self, separator=','):
-        data = [str(self.dt), str(self.temp), str(self.pressure), str(self.humidity), str(self.wind), self.country,
-                self.city]
-        return separator.join(data)
-
 
 with DAG('openweathermap_scraper',
          description='Scrapes the weather data from Openweathermap.org',
@@ -168,4 +153,3 @@ with DAG('openweathermap_scraper',
 
     create_table() >> insert_measurement(data)
     export_to_csv_file(data)
-

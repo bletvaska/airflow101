@@ -20,6 +20,7 @@ DB_URI = "sqlite:////airflow/database.db"
 
 logger = logging.getLogger(__name__)
 
+
 class Measurement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     dt: int
@@ -36,42 +37,10 @@ class Measurement(SQLModel, table=True):
         return separator.join(data)
 
 
-def _export_to_csv_file(ti: TaskInstance):
-    payload = ti.xcom_pull(task_ids=['preprocess_data'])[0]
-    measurement = Measurement(**payload)
-
-    with open(EXPORT_CSV, 'a') as file:
-        print(measurement.csv(), file=file)
-
-
-def _filter_data(ti: TaskInstance):
-    payload = ti.xcom_pull(task_ids=['scrape_weather_data'])[0]
-
-    # prepare data
-    data = payload['main']
-    data['dt'] = payload['dt']
-    data['wind'] = payload['wind']['speed']
-    data['country'] = payload['sys']['country']
-    data['city'] = payload['name']
-
-    # create measurement from data
-    measurement = Measurement(**data)
-
-    return measurement.dict()
-
-
-def _helper_operator(ti: TaskInstance):
-    payload = ti.xcom_pull(task_ids=['preprocess_data'])[0]
-    measurement = Measurement(**payload)
-    print(measurement)
-
-
 with DAG('openweathermap_scraper',
          description='Scrapes the weather data from Openweathermap.org',
          schedule_interval='*/15 * * * *',
          start_date=datetime(2022, 3, 18)) as dag:
-    task2 = DummyOperator(task_id='process_data')
-    task3 = DummyOperator(task_id='store_data')
 
     scrape_data = SimpleHttpOperator(
         task_id='scrape_weather_data',
@@ -84,7 +53,8 @@ with DAG('openweathermap_scraper',
             'appid': Variable.get('openweathermap_appid')
         },
         response_filter=lambda response: response.json(),
-        log_response=True
+        log_response=True,
+
     )
 
     service_availability = HttpSensor(
@@ -101,27 +71,41 @@ with DAG('openweathermap_scraper',
         method='GET',
     )
 
-    data_preprocessor = PythonOperator(
-        task_id='preprocess_data',
-        python_callable=_filter_data
-    )
 
-    # PythonOperator(
-    #     task_id='helper_operator',
-    #     python_callable=_helper_operator
+    @task
+    def preprocess_data(**kwargs):
+        ti = kwargs['ti']
+        payload = ti.xcom_pull(task_ids=['scrape_weather_data'])[0]
+
+        # prepare data
+        data = payload['main']
+        data['dt'] = payload['dt']
+        data['wind'] = payload['wind']['speed']
+        data['country'] = payload['sys']['country']
+        data['city'] = payload['name']
+
+        # create measurement from data
+        measurement = Measurement(**data)
+
+        return measurement.dict()
+
+
+    @task
+    def export_to_csv_file(**kwargs):
+        ti = kwargs['ti']
+        data = ti.xcom_pull(task_ids=['preprocess_data'])[0]
+        measurement = Measurement(**data)
+
+        with open(EXPORT_CSV, 'a') as file:
+            print(measurement.csv(), file=file)
+
+    #
+    # send_email = EmailOperator(
+    #     task_id='send_email',
+    #     to='mirek@cnl.sk',
+    #     subject='report is ready',
+    #     html_content='the report is almost ready'
     # )
-
-    to_csv = PythonOperator(
-        task_id='export_to_csv',
-        python_callable=_export_to_csv_file
-    )
-
-    send_email = EmailOperator(
-        task_id='send_email',
-        to='mirek@cnl.sk',
-        subject='report is ready',
-        html_content='the report is almost ready'
-    )
 
 
     @task
@@ -148,5 +132,13 @@ with DAG('openweathermap_scraper',
             session.commit()
 
 
-    service_availability >> scrape_data >> data_preprocessor >> [to_csv, create_table()]
-    create_table() >> insert_measurement()
+    # task dependencies
+    service_availability >> scrape_data >> preprocess_data() >> create_table() >> insert_measurement()
+    preprocess_data() >> export_to_csv_file()
+
+    # data = preprocess_data()
+    #
+    # create_table() >> insert_measurement(data)
+    # export_to_csv_file(data)
+
+

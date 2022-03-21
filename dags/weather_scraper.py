@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -17,6 +18,7 @@ from sqlmodel import SQLModel, Field, create_engine, Session
 EXPORT_CSV = Path('/airflow/weather.csv')
 DB_URI = "sqlite:////airflow/database.db"
 
+logger = logging.getLogger(__name__)
 
 class Measurement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -32,8 +34,6 @@ class Measurement(SQLModel, table=True):
         data = [str(self.dt), str(self.temp), str(self.pressure), str(self.humidity), str(self.wind), self.country,
                 self.city]
         return separator.join(data)
-
-
 
 
 def _export_to_csv_file(ti: TaskInstance):
@@ -116,7 +116,6 @@ with DAG('openweathermap_scraper',
         python_callable=_export_to_csv_file
     )
 
-
     send_email = EmailOperator(
         task_id='send_email',
         to='mirek@cnl.sk',
@@ -124,24 +123,30 @@ with DAG('openweathermap_scraper',
         html_content='the report is almost ready'
     )
 
+
     @task
     def create_table():
         engine = create_engine(DB_URI)
         SQLModel.metadata.create_all(engine)
 
+
     @task
     def insert_measurement(**kwargs):
+        # pull data
         ti = kwargs['ti']
         data = ti.xcom_pull(task_ids=['preprocess_data'])[0]
         measurement = Measurement(**data)
-        from IPython import embed; embed()
 
-        # engine = create_engine("sqlite:///database.db")
-        # with Session(engine) as session:
-        #     session.add()
+        # connect to db
+        engine = create_engine("sqlite:///database.db")
+        # from IPython import embed; embed()
 
+        # insert to db
+        with Session(engine) as session:
+            logger.info(f'Inserting to db measurement: "{measurement}"')
+            session.add(measurement)
+            session.commit()
 
 
     service_availability >> scrape_data >> data_preprocessor >> [to_csv, create_table()]
     create_table() >> insert_measurement()
-

@@ -3,8 +3,10 @@ from datetime import datetime
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models import Connection
+from airflow.operators.email import EmailOperator
 from jinja2 import Environment, FileSystemLoader
 from sqlmodel import create_engine, Session, select
+
 # from weasyprint import HTML
 
 from models import Measurement
@@ -99,13 +101,19 @@ with DAG('weather_report',
                 print(measurement.csv(), file=file)
 
 
-    @task
-    def send_report():
-        pass
+    send_email = EmailOperator(
+        task_id='send_email',
+        to='mirek@cnl.sk',
+        subject='report is ready',
+        html_content='the report is almost ready',
+        files=[
+            '/airflow/reports/weather.csv'
+        ]
+    )
 
-
+    # DAG
     data = get_data()
     [create_txt_report(data),
      create_md_report(data),
      create_html_report(data),
-     create_csv_report(data)] >> send_report()
+     create_csv_report(data)] >> send_email

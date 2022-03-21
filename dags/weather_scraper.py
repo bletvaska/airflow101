@@ -109,14 +109,6 @@ with DAG('openweathermap_scraper',
             print(measurement.csv(), file=file)
 
 
-    #
-    # send_email = EmailOperator(
-    #     task_id='send_email',
-    #     to='mirek@cnl.sk',
-    #     subject='report is ready',
-    #     html_content='the report is almost ready'
-    # )
-
     @task
     def create_table():
         engine = create_engine(DB_URI)

@@ -3,6 +3,7 @@ from datetime import datetime
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models import Connection
+from jinja2 import Environment, FileSystemLoader
 from sqlmodel import create_engine, Session, select
 
 from models import Measurement
@@ -30,9 +31,6 @@ with DAG('weather_report',
             humidity_max = max(session.exec(statement).all())
             humidity_min = min(session.exec(statement).all())
 
-            # print(temp_max, temp_min)
-            # from IPython import embed; embed()
-
             return {
                 'tempMax': temp_max,
                 'tempMin': temp_min,
@@ -43,7 +41,10 @@ with DAG('weather_report',
 
     @task
     def create_report():
-        print('create_report')
+        # print('create_report')
+        jenv = Environment(
+            loader=FileSystemLoader('/airflow/templates/'),
+        )
 
 
     @task

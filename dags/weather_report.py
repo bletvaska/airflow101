@@ -5,6 +5,7 @@ from airflow.decorators import task
 from airflow.models import Connection
 from jinja2 import Environment, FileSystemLoader
 from sqlmodel import create_engine, Session, select
+# from weasyprint import HTML
 
 from models import Measurement
 
@@ -35,8 +36,9 @@ with DAG('weather_report',
             statement = select(Measurement)
             measurements = []
 
-            for entry in session.exec(statement).all():
-                measurements.append(entry.dict())
+            for measurement in session.exec(statement).all():
+                entry = measurement.dict()
+                measurements.append(entry)
 
             # from IPython import embed;
             # embed()
@@ -78,7 +80,13 @@ with DAG('weather_report',
             loader=FileSystemLoader('/airflow/templates/'),
         )
         template = jenv.get_template('weather.report.tpl.html')
-        print(template.render(**data))
+        output = template.render(**data)
+
+        file = open('/tmp/report.html', 'w')
+        print(output, file=file)
+        file.close()
+
+        # HTML(string=output).write_pdf('/airflow/reports/weather.pdf')
 
         # from IPython import embed; embed()
 

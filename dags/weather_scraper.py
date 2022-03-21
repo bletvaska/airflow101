@@ -12,7 +12,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.sqlite.operators.sqlite import SqliteOperator
-from sqlmodel import SQLModel, Field, create_engine
+from sqlmodel import SQLModel, Field, create_engine, Session
 
 EXPORT_CSV = Path('/airflow/weather.csv')
 DB_URI = "sqlite:////airflow/database.db"
@@ -34,9 +34,6 @@ class Measurement(SQLModel, table=True):
         return separator.join(data)
 
 
-def _create_table():
-    engine = create_engine(DB_URI)
-    SQLModel.metadata.create_all(engine)
 
 
 def _export_to_csv_file(ti: TaskInstance):
@@ -119,22 +116,6 @@ with DAG('openweathermap_scraper',
         python_callable=_export_to_csv_file
     )
 
-    create_measurement_table = SqliteOperator(
-        task_id='create_measurement_table',
-        sqlite_conn_id='weather_data',
-        sql=r"""
-        CREATE TABLE IF NOT EXISTS Measurement (
-            id INT PRIMARY KEY,
-            dt INT,
-            temp FLOAT,
-            pressure INT,
-            humidity INT, 
-            wind FLOAT,
-            country TEXT,
-            city TEXT
-        );
-        """,
-    )
 
     send_email = EmailOperator(
         task_id='send_email',
@@ -143,15 +124,24 @@ with DAG('openweathermap_scraper',
         html_content='the report is almost ready'
     )
 
-    insert_measurement = BashOperator(
-        task_id='insert_measurement_to_db',
-        bash_command='date'
-    )
+    @task
+    def create_table():
+        engine = create_engine(DB_URI)
+        SQLModel.metadata.create_all(engine)
 
-    create_table = PythonOperator(
-        task_id='create_table',
-        python_callable=_create_table
-    )
+    @task
+    def insert_measurement(**kwargs):
+        ti = kwargs['ti']
+        data = ti.xcom_pull(task_ids=['preprocess_data'])[0]
+        measurement = Measurement(**data)
+        from IPython import embed; embed()
 
-    service_availability >> scrape_data >> data_preprocessor >> [to_csv, create_measurement_table]
-    create_measurement_table >> insert_measurement
+        # engine = create_engine("sqlite:///database.db")
+        # with Session(engine) as session:
+        #     session.add()
+
+
+
+    service_availability >> scrape_data >> data_preprocessor >> [to_csv, create_table()]
+    create_table() >> insert_measurement()
+

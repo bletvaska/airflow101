@@ -40,11 +40,24 @@ with DAG('weather_report',
 
 
     @task
-    def create_report():
-        # print('create_report')
+    def create_txt_report(data: dict):
         jenv = Environment(
             loader=FileSystemLoader('/airflow/templates/'),
         )
+        template = jenv.get_template('weather.report.tpl.txt')
+        print(template.render(**data))
+
+        # from IPython import embed; embed()
+
+    @task
+    def create_md_report(data: dict):
+        jenv = Environment(
+            loader=FileSystemLoader('/airflow/templates/'),
+        )
+        template = jenv.get_template('weather.report.tpl.md')
+        print(template.render(**data))
+
+        # from IPython import embed; embed()
 
 
     @task
@@ -52,4 +65,6 @@ with DAG('weather_report',
         pass
 
 
-    get_data() >> create_report() >> send_report()
+    data = get_data()
+    create_txt_report(data) >> send_report()
+    create_md_report(data) >> send_report()

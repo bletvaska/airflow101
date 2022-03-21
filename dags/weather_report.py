@@ -46,7 +46,7 @@ with DAG('weather_report',
                 'tempMin': temp_min,
                 'humidityMax': humidity_max,
                 'humidityMin': humidity_min,
-                'data': measurements
+                'measurements': measurements
             }
 
 
@@ -84,9 +84,20 @@ with DAG('weather_report',
 
 
     @task
+    def create_csv_report(data: dict):
+        with open('/airflow/reports/report.csv', 'w') as file:
+            for entry in data['measurements']:
+                measurement = Measurement(**entry)
+                print(measurement.csv(), file=file)
+
+
+    @task
     def send_report():
         pass
 
 
     data = get_data()
-    [create_txt_report(data), create_md_report(data), create_html_report(data)] >> send_report()
+    [create_txt_report(data),
+     create_md_report(data),
+     create_html_report(data),
+     create_csv_report(data)] >> send_report()

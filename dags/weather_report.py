@@ -31,11 +31,22 @@ with DAG('weather_report',
             humidity_max = max(session.exec(statement).all())
             humidity_min = min(session.exec(statement).all())
 
+            # get all data
+            statement = select(Measurement)
+            measurements = []
+
+            for entry in session.exec(statement).all():
+                measurements.append(entry.dict())
+
+            # from IPython import embed;
+            # embed()
+
             return {
                 'tempMax': temp_max,
                 'tempMin': temp_min,
                 'humidityMax': humidity_max,
-                'humidityMin': humidity_min
+                'humidityMin': humidity_min,
+                'data': measurements
             }
 
 

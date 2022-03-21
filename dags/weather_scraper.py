@@ -41,7 +41,7 @@ class Measurement(SQLModel, table=True):
 
 with DAG('openweathermap_scraper',
          description='Scrapes the weather data from Openweathermap.org',
-         schedule_interval='*/2 * * * *',
+         schedule_interval='*/15 * * * *',
          start_date=datetime(2022, 3, 18),
          catchup=False) as dag:
     service_availability = HttpSensor(

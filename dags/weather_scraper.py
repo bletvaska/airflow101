@@ -1,20 +1,25 @@
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.models import Variable, TaskInstance
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
+from airflow.operators.email import EmailOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.sqlite.operators.sqlite import SqliteOperator
-from pydantic import BaseModel
+from sqlmodel import SQLModel, Field, create_engine
 
 EXPORT_CSV = Path('/airflow/weather.csv')
+DB_URI = "sqlite:////airflow/database.db"
 
 
-class Measurement(BaseModel):
+class Measurement(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
     dt: int
     temp: float
     pressure: int
@@ -27,6 +32,11 @@ class Measurement(BaseModel):
         data = [str(self.dt), str(self.temp), str(self.pressure), str(self.humidity), str(self.wind), self.country,
                 self.city]
         return separator.join(data)
+
+
+def _create_table():
+    engine = create_engine(DB_URI)
+    SQLModel.metadata.create_all(engine)
 
 
 def _export_to_csv_file(ti: TaskInstance):
@@ -85,7 +95,9 @@ with DAG('openweathermap_scraper',
         http_conn_id='openweathermap_api',
         endpoint='/data/2.5/weather',
         request_params={
-            'appid': Variable.get('openweathermap_appid')
+            'appid': Variable.get('openweathermap_appid'),
+            'q': Variable.get('openweathermap_query', default_var='kosice,sk'),
+            'units': 'metric',
         },
         poke_interval=10,
         timeout=30,
@@ -124,9 +136,21 @@ with DAG('openweathermap_scraper',
         """,
     )
 
+    send_email = EmailOperator(
+        task_id='send_email',
+        to='mirek@cnl.sk',
+        subject='report is ready',
+        html_content='the report is almost ready'
+    )
+
     insert_measurement = BashOperator(
         task_id='insert_measurement_to_db',
         bash_command='date'
+    )
+
+    create_table = PythonOperator(
+        task_id='create_table',
+        python_callable=_create_table
     )
 
     service_availability >> scrape_data >> data_preprocessor >> [to_csv, create_measurement_table]

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import sqlmodel
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models import Connection
@@ -24,19 +25,22 @@ with DAG('weather_report',
 
         # query db
         with Session(engine) as session:
-            # get temp
-            statement = select(Measurement.temp)
-            temp_max = max(session.exec(statement).all())
-            temp_min = min(session.exec(statement).all())
 
-            # get humidity
-            statement = select(Measurement.humidity)
-            humidity_max = max(session.exec(statement).all())
-            humidity_min = min(session.exec(statement).all())
+            # aggregated values
+            statement = select(
+                sqlmodel.func.min(Measurement.temp),
+                sqlmodel.func.max(Measurement.temp),
+                sqlmodel.func.min(Measurement.humidity),
+                sqlmodel.func.max(Measurement.humidity),
+            )
+            values = session.exec(statement).one()
 
             # get all data
             statement = select(Measurement)
             measurements = []
+            # from IPython import embed;
+            # embed()
+
 
             for measurement in session.exec(statement).all():
                 entry = measurement.dict()
@@ -44,14 +48,14 @@ with DAG('weather_report',
 
             # from IPython import embed;
             # embed()
-
             return {
-                'tempMax': temp_max,
-                'tempMin': temp_min,
-                'humidityMax': humidity_max,
-                'humidityMin': humidity_min,
+                'tempMax': values[1],
+                'tempMin': values[0],
+                'humidityMax': values[3],
+                'humidityMin': values[2],
                 'measurements': measurements
             }
+
 
 
     @task

@@ -1,5 +1,6 @@
-from datetime import datetime
 import json
+from datetime import datetime
+from pathlib import Path
 
 from airflow import DAG
 from airflow.decorators import task
@@ -27,7 +28,7 @@ with DAG("weather_scraper",
             'appid': connection.password,
             'units': 'metric'
         }
-        
+
         # request weather info
         with requests.get(f'{connection.host}{connection.schema}', params=params) as response:
             data = response.json()
@@ -50,7 +51,7 @@ with DAG("weather_scraper",
         connection = BaseHook.get_connection(CONNECTION_ID)
         query = Variable.get('openweathermap_query', 'poprad,sk')
         url = f'{connection.host}{connection.schema}?q={query}&appid={connection.password}'
-        
+
         try:
             # http request
             with requests.get(url) as response:
@@ -61,7 +62,7 @@ with DAG("weather_scraper",
                     raise AirflowFailException(f'{response.status_code}: {data["message"]}')
 
                 # request.close()
-        
+
         # if hostname doesn't exist, then stop workflow
         except requests.exceptions.ConnectionError:
             raise AirflowFailException('Openweathermap.org is not available.')
@@ -82,15 +83,19 @@ with DAG("weather_scraper",
 
     @task
     def validate_data(payload: dict):
-        with open('dags/schema.json', 'r') as file:
+        # create absolute path to schema.json
+        path = Path(__file__).parent / 'schema.json'
+
+        # json schema validation
+        with open(path, 'r') as file:
             schema = json.load(file)
             jsonschema.validate(instance=payload, schema=schema)
             return payload
 
             # file.close()
 
-    # 
+    #
     raw_data = is_service_alive() >> scrape_weather_data()
-    filtered_data = filter_data(raw_data) 
+    filtered_data = filter_data(raw_data)
     validated_data = validate_data(filtered_data)
     process_data(validated_data) >> publish_data()

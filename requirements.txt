@@ -1,0 +1,7 @@
+# main dependencies
+apache-airflow
+jsonschema
+
+# dev tools
+ipython
+httpie

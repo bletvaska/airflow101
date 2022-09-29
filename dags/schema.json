@@ -1,0 +1,49 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "title": "Weather Data",
+    "description": "Filtered data stolen from openweathermap.org service",
+    "type": "object",
+    "properties": {
+      "temperature": {
+        "description": "The temperature.",
+        "type": "number",
+        "minimum": -273,
+        "maximum": 60
+      },
+      "humidity": {
+        "description": "Humidity in percentage",
+        "type": "integer",
+        "maximum": 100,
+        "minimum": 0
+      },
+      "pressure": {
+        "description": "The outer pressure",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1500
+      },
+      "city": {
+        "description": "Object of measurement.",
+        "type": "string"
+      },
+      "country": {
+        "description": "Country of city",
+        "type": "string",
+        "maxLength": 2,
+        "minLength": 2,
+        "pattern": "^SK|CZ|DE$"
+      },
+      "dt": {
+        "description": "Timestamp of measurement.",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "temperature",
+      "humidity",
+      "pressure",
+      "city",
+      "country",
+      "dt"
+    ]
+}

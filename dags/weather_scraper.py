@@ -1,147 +1,96 @@
-import logging
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
+import json
 
-import requests
 from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
-from airflow.models import Variable, TaskInstance, Connection
-from airflow.operators.bash import BashOperator
-from airflow.operators.dummy import DummyOperator
-from airflow.operators.email import EmailOperator
-from airflow.operators.python import PythonOperator
-from airflow.providers.http.operators.http import SimpleHttpOperator
-from airflow.providers.http.sensors.http import HttpSensor
-from airflow.providers.sqlite.operators.sqlite import SqliteOperator
-from sqlmodel import SQLModel, Field, create_engine, Session
+from airflow.hooks.base import BaseHook
+from airflow.models import Variable
+import requests
+import jsonschema
 
-from models import Measurement
-
-EXPORT_CSV = Path('/airflow/weather.csv')
-DB_URI = "sqlite:////airflow/database.db"
-
-logger = logging.getLogger(__name__)
-
-with DAG('openweathermap_scraper',
-         description='Scrapes the weather data from Openweathermap.org',
-         schedule_interval='*/15 * * * *',
-         start_date=datetime(2022, 3, 18),
-         catchup=False) as dag:
-    service_availability = HttpSensor(
-        task_id='is_weather_api_available',
-        http_conn_id='openweathermap_api',
-        endpoint='/data/2.5/weather',
-        request_params={
-            'appid': Variable.get('openweathermap_appid'),
-            'q': Variable.get('openweathermap_query', default_var='kosice,sk'),
-            'units': 'metric',
-        },
-        poke_interval=10,
-        timeout=30,
-        method='GET',
-    )
+CONNECTION_ID = 'openweathermap'
 
 
-    # scrape_data = SimpleHttpOperator(
-    #     task_id='scrape_weather_data',
-    #     method='GET',
-    #     http_conn_id='openweathermap_api',
-    #     endpoint='/data/2.5/weather',
-    #     data={
-    #         'q': Variable.get('openweathermap_query', default_var='kosice,sk'),
-    #         'units': 'metric',
-    #         'appid': Variable.get('openweathermap_appid')
-    #     },
-    #     response_filter=lambda response: response.json(),
-    #     log_response=True,
-    #
-    # )
+with DAG("weather_scraper",
+   description="Scrapes and processes the weather data.",
+   schedule="@hourly",
+   start_date=datetime(2022, 9, 28),
+   catchup=False):
 
     @task
-    def scrape_data():
-        # prepare data
-        conn = Connection.get_connection_from_secrets('openweathermap_api')
+    def scrape_weather_data():
+        # prepare for query
+        connection = BaseHook.get_connection(CONNECTION_ID)
         params = {
-            'q': Variable.get('openweathermap_query', default_var='kosice,sk'),
-            'units': 'metric',
-            'appid': Variable.get('openweathermap_appid')
+            'q': Variable.get('openweathermap_query', 'poprad,sk'),
+            'appid': connection.password,
+            'units': 'metric'
+        }
+        
+        # request weather info
+        with requests.get(f'{connection.host}{connection.schema}', params=params) as response:
+            data = response.json()
+            return data
+
+            # request.close()
+
+    @task
+    def process_data(data: dict):
+        print('>>> processing data')
+        print(data)
+
+    @task
+    def publish_data():
+        print('>>> publishing data')
+
+    @task
+    def is_service_alive():
+        # create request url
+        connection = BaseHook.get_connection(CONNECTION_ID)
+        query = Variable.get('openweathermap_query', 'poprad,sk')
+        url = f'{connection.host}{connection.schema}?q={query}&appid={connection.password}'
+        
+        try:
+            # http request
+            with requests.get(url) as response:
+
+                # if http status code is not 200, then stop workflow
+                if response.status_code != 200:
+                    data = response.json()
+                    raise AirflowFailException(f'{response.status_code}: {data["message"]}')
+
+                # request.close()
+        
+        # if hostname doesn't exist, then stop workflow
+        except requests.exceptions.ConnectionError:
+            raise AirflowFailException('Openweathermap.org is not available.')
+
+    @task
+    def filter_data(payload: dict):
+        # filter data
+        data = {
+            'temperature': payload['main']['temp'],
+            'humidity': payload['main']['humidity'],
+            'pressure': payload['main']['pressure'],
+            'city': payload['name'],
+            'country': payload['sys']['country'],
+            'dt': payload['dt']
         }
 
-        with requests.get(f'{conn.host}/data/2.5/weather', params=params) as response:
-            # if error, then stop
-            if response.status_code != 200:
-                raise AirflowFailException('Data were not downloaded properly.')
-
-            return response.json()
-
+        return data
 
     @task
-    def preprocess_data(payload: dict):
-        # ti: TaskInstance = kwargs['ti']
-        # payload = ti.xcom_pull(task_ids=['scrape_weather_data'])[0]
+    def validate_data(payload: dict):
+        with open('dags/schema.json', 'r') as file:
+            schema = json.load(file)
+            jsonschema.validate(instance=payload, schema=schema)
+            return payload
 
-        # prepare data
-        try:
-            data = payload['main']
-            data['dt'] = payload['dt']
-            data['wind'] = payload['wind']['speed']
-            data['country'] = payload['sys']['country']
-            data['city'] = payload['name']
+            # file.close()
 
-            # create measurement from data
-            measurement = Measurement(**data)
-
-            # ti.xcom_push(key='message', value='hello world')
-            return measurement.dict()
-        except Exception:
-            raise AirflowFailException('Data were not correctly formatted.')
-
-
-    @task
-    def export_to_csv_file(data: dict):  # **kwargs):
-        # ti = kwargs['ti']
-        # data = ti.xcom_pull(task_ids=['preprocess_data'])[0]
-        measurement = Measurement(**data)
-
-        with open(EXPORT_CSV, 'a') as file:
-            print(measurement.csv(), file=file)
-
-
-    @task
-    def create_table():
-        engine = create_engine(DB_URI)
-        SQLModel.metadata.create_all(engine)
-
-
-    @task
-    def insert_measurement(data: dict):  # **kwargs):
-        # pull data
-        # ti = kwargs['ti']
-        # data = ti.xcom_pull(task_ids=['preprocess_data'])[0]
-        measurement = Measurement(**data)
-
-        # connect to db
-        engine = create_engine("sqlite:///database.db")
-        # from IPython import embed; embed()
-
-        # insert to db
-        with Session(engine) as session:
-            logger.info(f'Inserting to db measurement: "{measurement}"')
-            session.add(measurement)
-            session.commit()
-
-
-    # task dependencies
-    # service_availability >> scrape_data  # >> preprocess_data() >> create_table() >> insert_measurement()
-    # scrape_data.downstream_task_ids = ['preprocess_data']
-    # scrape_data.set_downstream(task_or_task_list=['preprocess_data'])  # >> preprocess_data()
-    # preprocess_data() >> export_to_csv_file()
-
-    payload = service_availability >> scrape_data()
-
-    data = preprocess_data(payload)
-
-    create_table() >> insert_measurement(data)
-    export_to_csv_file(data)
+    # 
+    raw_data = is_service_alive() >> scrape_weather_data()
+    filtered_data = filter_data(raw_data) 
+    validated_data = validate_data(filtered_data)
+    process_data(validated_data) >> publish_data()

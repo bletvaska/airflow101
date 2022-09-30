@@ -15,7 +15,7 @@ CONNECTION_ID = 'openweathermap'
 
 with DAG("weather_scraper",
    description="Scrapes and processes the weather data.",
-   schedule="@hourly",
+   schedule="*/15 * * * *",
    start_date=datetime(2022, 9, 28),
    catchup=False):
 
@@ -51,7 +51,7 @@ with DAG("weather_scraper",
 
 
     @task
-    def process_data(data: dict):
+    def save_to_jsondb(data: dict):
         print('>>> processing data')
         path = Path(__file__).parent / 'weather.json'
 
@@ -129,4 +129,4 @@ with DAG("weather_scraper",
     raw_data = is_service_alive() >> scrape_weather_data()
     filtered_data = filter_data(raw_data)
     validated_data = validate_data(filtered_data)
-    is_jsondb_valid() >> process_data(validated_data) >> publish_data()
+    is_jsondb_valid() >> save_to_jsondb(validated_data) >> publish_data()

@@ -46,6 +46,9 @@ class Measurement(BaseModel):
         else:
             return value
 
+    def csv(self):
+        return f'{self.dt};{self.country};{self.city};{self.temperature};{self.humidity};{self.pressure}'
+
 
 
 with DAG("weather_scraper",
@@ -160,8 +163,21 @@ with DAG("weather_scraper",
 
             # file.close()
 
+
+    @task
+    def save_to_csv(payload: dict):
+        # create absolute path to data.csv
+        path = Path(__file__).parent / 'weather.csv'
+        data = Measurement(**payload)
+
+        with open(path, 'a') as file:
+            # print(f'{data.dt};{data.country};{data.city};{data.temperature};{data.humidity};{data.pressure};', file=file)
+            # print(data.dt, data.country, data.city, data.temperature, data.humidity, data.pressure, sep=';', file=file)
+            print(data.csv(), file=file)
+
     #
     raw_data = is_service_alive() >> scrape_weather_data()
     filtered_data = filter_data(raw_data)
     validated_data = validate_data(filtered_data)
     is_jsondb_valid() >> save_to_jsondb(validated_data) >> publish_data()
+    save_to_csv(filtered_data)

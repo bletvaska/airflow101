@@ -9,8 +9,17 @@ from airflow.hooks.base import BaseHook
 from airflow.models import Variable
 import requests
 import jsonschema
+from pydantic import BaseModel
 
 CONNECTION_ID = 'openweathermap'
+
+class Measurement(BaseModel):
+    temperature: float
+    humidity: int
+    pressure: int
+    city: str
+    country: str
+    dt: datetime
 
 
 with DAG("weather_scraper",

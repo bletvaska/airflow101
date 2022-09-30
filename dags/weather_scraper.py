@@ -9,8 +9,8 @@ from airflow.hooks.base import BaseHook
 from airflow.models import Variable
 import requests
 import jsonschema
-from pydantic import BaseModel, validator
-from sqlmodel import Field, SQLModel
+from pydantic import validator
+from sqlmodel import Field, SQLModel, create_engine
 
 CONNECTION_ID = 'openweathermap'
 
@@ -177,9 +177,19 @@ with DAG("weather_scraper",
             # print(data.dt, data.country, data.city, data.temperature, data.humidity, data.pressure, sep=';', file=file)
             print(data.csv(), file=file)
 
+
+    @task
+    def save_to_db(payload: dict):
+        conn = BaseHook.get_connection('openweathermap_db')
+
+        engine = create_engine(f'{conn.schema}://{conn.host}')
+        SQLModel.metadata.create_all(engine)
+
+
     #
     raw_data = is_service_alive() >> scrape_weather_data()
     filtered_data = filter_data(raw_data)
     validated_data = validate_data(filtered_data)
     is_jsondb_valid() >> save_to_jsondb(validated_data) >> publish_data()
     save_to_csv(filtered_data)
+    save_to_db(filtered_data)

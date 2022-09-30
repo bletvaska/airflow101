@@ -10,10 +10,12 @@ from airflow.models import Variable
 import requests
 import jsonschema
 from pydantic import BaseModel, validator
+from sqlmodel import Field, SQLModel
 
 CONNECTION_ID = 'openweathermap'
 
-class Measurement(BaseModel):
+class Measurement(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     temperature: float
     humidity: int
     pressure: int

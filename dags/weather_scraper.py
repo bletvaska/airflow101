@@ -10,7 +10,7 @@ from airflow.models import Variable
 import requests
 import jsonschema
 from pydantic import validator
-from sqlmodel import Field, SQLModel, create_engine
+from sqlmodel import Field, SQLModel, create_engine, Session
 
 CONNECTION_ID = 'openweathermap'
 
@@ -184,6 +184,13 @@ with DAG("weather_scraper",
 
         engine = create_engine(f'{conn.schema}://{conn.host}')
         SQLModel.metadata.create_all(engine)
+
+        data = Measurement(**payload)
+
+        with Session(engine) as session:
+            # INSERT INTO measurement VALUES()
+            session.add(data)
+            session.commit()
 
 
     #

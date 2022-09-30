@@ -37,8 +37,39 @@ with DAG("weather_scraper",
             # request.close()
 
     @task
+    def is_jsondb_valid():
+        path = Path(__file__).parent / 'weather.json'
+
+        try:
+            with open(path, 'r+') as file:
+                json.load(file)
+
+        except (json.decoder.JSONDecodeError, FileNotFoundError):
+            with open(path, 'w') as file:
+                print('{}', file=file)
+
+
+
+    @task
     def process_data(data: dict):
         print('>>> processing data')
+        path = Path(__file__).parent / 'weather.json'
+
+        # load existing records
+        with open(path, 'r') as file:
+            db = json.load(file)
+
+        # add new entry
+        db[data['dt']] = data
+
+        # save new one
+        with open(path, 'w') as file:
+            print(json.dumps(db), file=file)
+
+
+
+
+
         print(data)
 
     @task
@@ -98,4 +129,4 @@ with DAG("weather_scraper",
     raw_data = is_service_alive() >> scrape_weather_data()
     filtered_data = filter_data(raw_data)
     validated_data = validate_data(filtered_data)
-    process_data(validated_data) >> publish_data()
+    is_jsondb_valid() >> process_data(validated_data) >> publish_data()

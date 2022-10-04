@@ -221,7 +221,11 @@ with DAG(
         """
         try:
             # create MinIO client
-            client = Minio('minio:9000', 'admin', 'administrator', secure=False)
+            conn = BaseHook.get_connection('minio_server')
+            client = Minio(f'{conn.host}:{conn.port}',
+                           conn.login,
+                           conn.password,
+                           secure=False)
 
             # check if bucket exists
             if client.bucket_exists('datasets') == False:
@@ -236,7 +240,11 @@ with DAG(
         Uploads CSV dataset to MinIO/S3 bucket.
         """
         # create MinIO client
-        client = Minio('minio:9000', 'admin', 'administrator', secure=False)
+        conn = BaseHook.get_connection('minio_server')
+        client = Minio(f'{conn.host}:{conn.port}',
+                conn.login,
+                conn.password,
+                secure=False)
 
         # upload object/file
         client.fput_object(

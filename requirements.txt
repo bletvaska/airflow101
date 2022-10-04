@@ -1,7 +1,12 @@
 # main dependencies
 apache-airflow
 jsonschema
+pydantic
+minio
+sqlmodel
 
 # dev tools
 ipython
 httpie
+litecli
+

@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+    airflow:
+        volumes:
+        - /home/ubuntu/airflow:/airflow 
+        ports:
+        - 8080:8080 
+        image: bletvaska/airflow
+
+    minio:
+        image: bitnami/minio
+        ports:
+        - 9000:9000
+        - 9001:9001
+        volumes:
+        - /home/ubuntu/airflow/minio.buckets:/data
+        environment:
+        - MINIO_ROOT_USER=admin
+        - MINIO_ROOT_PASSWORD=administrator
+        - MINIO_DEFAULT_BUCKETS=reports,datasets
+

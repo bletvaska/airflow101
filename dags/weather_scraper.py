@@ -127,11 +127,6 @@ with DAG(
 
 
     @task
-    def publish_data():
-        print(">>> publishing data")
-
-
-    @task
     def is_service_alive():
         """
         Checks, if the service is available and credentials are valid.
@@ -219,6 +214,11 @@ with DAG(
 
     @task
     def is_minio_alive():
+        """
+        Checks if minio and bucket "datasets" are available.
+
+        If the bucket doesn't exist, the function will create it.
+        """
         try:
             # create MinIO client
             client = Minio('minio:9000', 'admin', 'administrator', secure=False)

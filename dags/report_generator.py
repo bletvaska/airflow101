@@ -6,6 +6,9 @@ from airflow.decorators import task
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 from minio import Minio
+from sqlmodel import SQLModel, Session, create_engine, select
+
+from models import Measurement
 
 
 with DAG(
@@ -17,7 +20,11 @@ with DAG(
 ):
     @task
     def get_data():
-        pass
+        conn = BaseHook.get_connection("openweathermap_db")
+        engine = create_engine(f"{conn.schema}://{conn.host}")
+        with Session(engine) as session:
+            statement = select(Measurement).where(Measurement.dt > '2022-10-03 00:00:00').where (Measurement.dt < '2022-10-04 00:00:00')
+            rows = session.exec(statement).all()
 
 
     @task
@@ -41,8 +48,8 @@ with DAG(
                            secure=False)
 
             # check if bucket exists
-            if client.bucket_exists('datasets') == False:
-                client.make_bucket('datasets')
+            if client.bucket_exists('reports') == False:
+                client.make_bucket('reports')
         except urllib3.exceptions.MaxRetryError:
             raise AirflowFailException(f'MinIO not available.')
 

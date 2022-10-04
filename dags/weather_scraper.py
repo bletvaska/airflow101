@@ -235,7 +235,15 @@ with DAG(
         """
         Uploads CSV dataset to MinIO/S3 bucket.
         """
-        pass
+        # create MinIO client
+        client = Minio('minio:9000', 'admin', 'administrator', secure=False)
+
+        # upload object/file
+        client.fput_object(
+            "datasets",
+            "weather.csv",
+            Path(__file__).parent / "weather.csv"
+        )
 
 
     @task

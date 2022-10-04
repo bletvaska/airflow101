@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+import urllib3
 
 from airflow import DAG
 from airflow.decorators import task
@@ -11,6 +12,7 @@ import requests
 import jsonschema
 from pydantic import validator
 from sqlmodel import Field, SQLModel, create_engine, Session
+from minio import Minio
 
 CONNECTION_ID = "openweathermap"
 
@@ -216,6 +218,27 @@ with DAG(
 
 
     @task
+    def is_minio_alive():
+        try:
+            # create MinIO client
+            client = Minio('minio:9000', 'admin', 'administrator', secure=False)
+
+            # check if bucket exists
+            if client.bucket_exists('datasets') == False:
+                client.make_bucket('datasets')
+        except urllib3.exceptions.MaxRetryError:
+            raise AirflowFailException(f'MinIO not available.')
+
+
+    @task
+    def upload_to_minio():
+        """
+        Uploads CSV dataset to MinIO/S3 bucket.
+        """
+        pass
+
+
+    @task
     def save_to_db(payload: dict):
         """
         Inserts the latest measurement to the SQL database.
@@ -239,5 +262,5 @@ with DAG(
     filtered_data = filter_data(raw_data)
     validated_data = validate_data(filtered_data)
     is_jsondb_valid() >> save_to_jsondb(validated_data)
-    save_to_csv(filtered_data)
+    save_to_csv(filtered_data) >> is_minio_alive() >> upload_to_minio()
     save_to_db(filtered_data)

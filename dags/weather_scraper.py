@@ -10,7 +10,6 @@ from airflow.exceptions import AirflowFailException
 from airflow.hooks.base import BaseHook
 import httpx
 import pendulum
-import boto3
 from botocore.exceptions import ClientError
 
 # my local modules
@@ -18,10 +17,6 @@ from helpers import get_minio_client
 from tasks import is_minio_alive
 from variables import BUCKET_DATASETS, DATASET_WEATHER
 
-# my local modules
-# from tasks import is_minio_alive
-
-# from pendulum import datetime
 
 APPID = BaseHook.get_connection("openweathermap").password
 BASE_URL = BaseHook.get_connection("openweathermap").host
@@ -98,24 +93,23 @@ def filter_data(data: dict) -> dict:
 @task
 def process_data(data: dict) -> None:
     minio = get_minio_client()
-    
+
     # get bucket
     bucket = minio.Bucket(BUCKET_DATASETS)
-    
+
     # create temporary file
     path = Path(tempfile.mkstemp()[1])  # Path("/home/ubuntu/weather.csv")
-    
+
     # download weather.csv from S3/MinIO
     try:
         bucket.download_file(Key=DATASET_WEATHER, Filename=path)
     except ClientError:
-        print('Given dataset was not found on S3/MinIO.')
-        
+        print("Given dataset was not found on S3/MinIO.")
+
         # if no CSV file yet, then create header
-        # if not path.is_file():
         with open(path, "w") as file:
             print(
-                "dt,city,country,temperature,humidity,pressure,sunrise,susnet,wind_speed,wind_deg",
+                "dt,city,country,temperature,humidity,pressure,sunrise,sunset,wind_speed,wind_deg",
                 file=file,
             )
 
@@ -136,10 +130,10 @@ def process_data(data: dict) -> None:
             ),
             file=file,
         )
-        
+
     # upload data
     bucket.upload_file(Filename=path, Key=DATASET_WEATHER)
-        
+
     # delete file
     path.unlink(missing_ok=True)
 

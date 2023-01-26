@@ -16,6 +16,7 @@ from botocore.exceptions import ClientError
 # my local modules
 from helpers import get_minio_client
 from tasks import is_minio_alive
+from variables import BUCKET_DATASETS, DATASET_WEATHER
 
 # my local modules
 # from tasks import is_minio_alive
@@ -24,8 +25,6 @@ from tasks import is_minio_alive
 
 APPID = BaseHook.get_connection("openweathermap").password
 BASE_URL = BaseHook.get_connection("openweathermap").host
-BUCKET_DATASETS = 'datasets'
-DATASET_WEATHER = 'weather.csv'
 
 
 @task

@@ -13,7 +13,8 @@ import pendulum
 import boto3
 from botocore.exceptions import ClientError
 
-from airflow.dags.tasks import is_minio_alive
+# my local modules
+from tasks import is_minio_alive
 
 # my local modules
 # from tasks import is_minio_alive

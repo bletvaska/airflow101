@@ -14,6 +14,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 # my local modules
+from helpers import get_minio_client
 from tasks import is_minio_alive
 
 # my local modules
@@ -97,16 +98,7 @@ def filter_data(data: dict) -> dict:
 
 @task
 def process_data(data: dict) -> None:
-    # create minio/s3 client
-    minio = boto3.resource(
-        "s3",
-        endpoint_url="http://localhost:9000",
-        aws_access_key_id="admin",
-        aws_secret_access_key="jahodka123",
-        # config=boto3.session.Config(signature_version='s3v4'),
-        # aws_session_token=None,
-        # verify=False
-    )
+    minio = get_minio_client()
     
     # get bucket
     bucket = minio.Bucket(BUCKET_DATASETS)

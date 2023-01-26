@@ -6,6 +6,7 @@ import tempfile
 # third-party modules
 from airflow import DAG
 from airflow.decorators import task
+from airflow.exceptions import AirflowFailException
 import boto3
 from botocore.exceptions import ClientError
 
@@ -32,15 +33,16 @@ def download_dataset():
     bucket = minio.Bucket(BUCKET_DATASETS)
     
     # create temporary file
-    path = Path(tempfile.mkstemp()[1])  # Path("/home/ubuntu/weather.csv")
+    path = Path(tempfile.mkstemp()[1])
     
     # download weather.csv from S3/MinIO
     try:
         bucket.download_file(Key=DATASET_WEATHER, Filename=path)
     except ClientError:
-        print('Given dataset was not found on S3/MinIO.')
+        # print('Given dataset was not found on S3/MinIO.')
+        raise AirflowFailException("No weather dataset was found.")
     
-    return 'path'
+    return str(path)
 
 @task
 def create_report():

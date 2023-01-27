@@ -68,17 +68,17 @@ def create_report(path: str):
     # delete downloaded dataset
     Path(path).unlink(True)
 
-    return tmp_path
+    return tmp_path, pendulum.yesterday("utc"), 'kosice'
 
 
 @task
-def publish_report(path: str):
+def publish_report(path: str, date: datetime, city: str):
     # save figure
     minio = get_minio_client()
     bucket = minio.Bucket(BUCKET_REPORTS)
     
     # prepare the destination filename
-    report_name = 'xxx.png'
+    report_name = 'temperature.at.{date}.in.{city}.png'
     
     # upload
     bucket.upload_file(Filename=path, Key=report_name)
@@ -95,5 +95,5 @@ with DAG(
     schedule="5 0 * * *",
 ):
     path = is_minio_alive() >> download_dataset()
-    figure = create_report(path)
-    publish_report(figure)
+    figure, date, city = create_report(path)
+    publish_report(figure, date, city)

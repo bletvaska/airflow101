@@ -8,6 +8,8 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
 from botocore.exceptions import ClientError
+import pandas as pd
+import pendulum
 
 # my modules
 from tasks import is_minio_alive
@@ -37,6 +39,19 @@ def download_dataset() -> str:
 
 @task
 def create_report(path: str):
+    # load dataset
+    df = pd.read_csv(path, parse_dates=['dt', 'sunrise', 'sunset'])
+    
+    # create filters
+    filter1 = df['dt'] >= pendulum.yesterday('utc')
+    filter2 = df['dt'] < pendulum.today('utc')
+    filter3 = filter1 & filter2
+    
+    # create dataset with yesterday entries only
+    yesterday = df.loc[filter3]
+    
+    print(yesterday)
+    
     pass
 
 

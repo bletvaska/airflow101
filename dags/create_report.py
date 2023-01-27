@@ -16,7 +16,7 @@ import pendulum
 # my modules
 from tasks import is_minio_alive
 from helpers import get_minio_client
-from variables import BUCKET_DATASETS, DATASET_WEATHER
+from variables import BUCKET_DATASETS, BUCKET_REPORTS, DATASET_WEATHER
 
 
 @task
@@ -53,7 +53,7 @@ def create_report(path: str):
     yesterday = df.loc[filter3]
 
     # create graph report
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     yesterday_date = pendulum.yesterday("utc").strftime("%d.%m.%Y")
     ax.set_title(f"Teplota zo dňa {yesterday_date}")
     ax.set_xlabel("čas (hod)")
@@ -62,7 +62,7 @@ def create_report(path: str):
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
 
     # save report
-    fd, tmp_path = tempfile.mkstemp(suffix=".png")
+    _, tmp_path = tempfile.mkstemp(suffix=".png")
     plt.savefig(tmp_path)
 
     # delete downloaded dataset
@@ -75,8 +75,16 @@ def create_report(path: str):
 def publish_report(path: str):
     # save figure
     minio = get_minio_client()
-    bucket = minio.Bucket("reports")
-    # bucket.upload_file(Filename=path, Key)
+    bucket = minio.Bucket(BUCKET_REPORTS)
+    
+    # prepare the destination filename
+    report_name = 'xxx.png'
+    
+    # upload
+    bucket.upload_file(Filename=path, Key=report_name)
+    
+    # delete downloaded dataset
+    Path(path).unlink(True)
 
 
 with DAG(

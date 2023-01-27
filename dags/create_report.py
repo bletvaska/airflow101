@@ -8,6 +8,8 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
 from botocore.exceptions import ClientError
+from matplotlib import pyplot as plt
+import matplotlib.dates as mdates
 import pandas as pd
 import pendulum
 
@@ -50,10 +52,20 @@ def create_report(path: str):
     # create dataset with yesterday entries only
     yesterday = df.loc[filter3]
     
-    print(yesterday)
+    # create graph report
+    fig, ax = plt.subplots()
+    yesterday_date = pendulum.yesterday('utc').strftime('%d.%m.%Y')
+    ax.set_title(f'Teplota zo dňa {yesterday_date}')
+    ax.set_xlabel('čas (hod)')
+    ax.set_ylabel('teplota (°C)')
+    ax.plot(yesterday['dt'], yesterday['temperature'] )
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
     
-    pass
-
+    # plt.savefig('yesterday.png')
+    
+    # delete downloaded dataset
+    Path(path).unlink(True)
+    
 
 @task
 def publish_report():

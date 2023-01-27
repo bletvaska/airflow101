@@ -8,7 +8,7 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
 from botocore.exceptions import ClientError
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import pandas as pd
 import pendulum

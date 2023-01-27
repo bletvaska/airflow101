@@ -42,34 +42,42 @@ def download_dataset() -> str:
 @task
 def create_report(path: str):
     # load dataset
-    df = pd.read_csv(path, parse_dates=['dt', 'sunrise', 'sunset'])
-    
+    df = pd.read_csv(path, parse_dates=["dt", "sunrise", "sunset"])
+
     # create filters
-    filter1 = df['dt'] >= pendulum.yesterday('utc')
-    filter2 = df['dt'] < pendulum.today('utc')
+    filter1 = df["dt"] >= pendulum.yesterday("utc")
+    filter2 = df["dt"] < pendulum.today("utc")
     filter3 = filter1 & filter2
-    
+
     # create dataset with yesterday entries only
     yesterday = df.loc[filter3]
-    
+
     # create graph report
     fig, ax = plt.subplots()
-    yesterday_date = pendulum.yesterday('utc').strftime('%d.%m.%Y')
-    ax.set_title(f'Teplota zo dňa {yesterday_date}')
-    ax.set_xlabel('čas (hod)')
-    ax.set_ylabel('teplota (°C)')
-    ax.plot(yesterday['dt'], yesterday['temperature'] )
+    yesterday_date = pendulum.yesterday("utc").strftime("%d.%m.%Y")
+    ax.set_title(f"Teplota zo dňa {yesterday_date}")
+    ax.set_xlabel("čas (hod)")
+    ax.set_ylabel("teplota (°C)")
+    ax.plot(yesterday["dt"], yesterday["temperature"])
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
-    
-    # plt.savefig('yesterday.png')
-    
+
+    # save report
+    fd, tmp_path = tempfile.mkstemp(suffix='.png')
+    plt.savefig(tmp_path)
+
     # delete downloaded dataset
     Path(path).unlink(True)
     
+    return tmp_path
+
 
 @task
-def publish_report():
-    pass
+def publish_report(path: str):
+    # save figure
+    minio = get_minio_client()
+    bucket = minio.Bucket('reports')
+    # bucket.upload_file(Filename=path, Key)
+
 
 
 with DAG(
@@ -79,5 +87,6 @@ with DAG(
     start_date=datetime(2023, 1, 23),
     schedule="5 0 * * *",
 ):
-    path = is_minio_alive() >> download_dataset() 
-    create_report(path) >> publish_report()
+    path = is_minio_alive() >> download_dataset()
+    figure = create_report(path)
+    publish_report(figure)

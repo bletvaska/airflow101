@@ -52,4 +52,5 @@ with DAG(
     start_date=datetime(2023, 1, 23),
     schedule="5 0 * * *",
 ):
-    is_minio_alive() >> download_dataset() >> create_report() >> publish_report()
+    path = is_minio_alive() >> download_dataset() 
+    create_report(path) >> publish_report()

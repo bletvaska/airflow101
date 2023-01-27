@@ -62,12 +62,12 @@ def create_report(path: str):
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
 
     # save report
-    fd, tmp_path = tempfile.mkstemp(suffix='.png')
+    fd, tmp_path = tempfile.mkstemp(suffix=".png")
     plt.savefig(tmp_path)
 
     # delete downloaded dataset
     Path(path).unlink(True)
-    
+
     return tmp_path
 
 
@@ -75,9 +75,8 @@ def create_report(path: str):
 def publish_report(path: str):
     # save figure
     minio = get_minio_client()
-    bucket = minio.Bucket('reports')
+    bucket = minio.Bucket("reports")
     # bucket.upload_file(Filename=path, Key)
-
 
 
 with DAG(

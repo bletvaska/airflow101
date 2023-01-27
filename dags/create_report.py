@@ -16,7 +16,7 @@ from variables import BUCKET_DATASETS, DATASET_WEATHER
 
 
 @task
-def download_dataset():
+def download_dataset() -> str:
     try:
         minio = get_minio_client()
 
@@ -24,7 +24,7 @@ def download_dataset():
         bucket = minio.Bucket(BUCKET_DATASETS)
 
         # create temporary file
-        path = Path(tempfile.mkstemp()[1])
+        path = tempfile.mkstemp()[1]
 
         # download weather.csv from S3/MinIO
         bucket.download_file(Key=DATASET_WEATHER, Filename=path)
@@ -32,11 +32,11 @@ def download_dataset():
         # print('Given dataset was not found on S3/MinIO.')
         raise AirflowFailException("No weather dataset was found.")
 
-    return str(path)
+    return path
 
 
 @task
-def create_report():
+def create_report(path: str):
     pass
 
 

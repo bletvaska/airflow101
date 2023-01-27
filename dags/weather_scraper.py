@@ -116,7 +116,7 @@ def process_data(data: dict) -> None:
     # append data
     with open(path, "a") as file:
         print(
-            "{}, {}, {}, {}, {}, {}, {}, {}, {}, {}".format(
+            "{},{},{},{},{},{},{},{},{},{}".format(
                 pendulum.from_timestamp(data["dt"]).to_iso8601_string(),
                 data["city"],
                 data["country"],

@@ -38,10 +38,9 @@ graph LR;
     B --> D[filter data];
     D --> E[update dataset];
 
-graph LR;
-    A[minio health check] --> B[get data];
-    B --> C[create report];
-    C --> D[upload report];
+    F[minio health check] --> G[get data];
+    G --> H[create report];
+    H --> I[upload report];
 ```
 
 

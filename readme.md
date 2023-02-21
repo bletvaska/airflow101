@@ -35,9 +35,8 @@ Pre absolvovanie kurzu je potrené poznať minimálne základy jazyka Python. Zn
 graph TD;
     A[minio health check] --> B[get data];
     C[weather svc health check] --> B;
-    A-->C;
-    B-->D;
-    C-->D;
+    B --> D[filter data];
+    D --> E[update dataset];
 ```
 
 

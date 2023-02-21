@@ -32,13 +32,13 @@ Pre absolvovanie kurzu je potrené poznať minimálne základy jazyka Python. Zn
 ## Výsledné workflovy
 
 ```mermaid
-graph LR;
-    A[minio health check] --> B[get data];
-    C[weather svc health check] --> B;
-    B --> D[filter data];
-    D --> E[update dataset];
+graph LR
+    A[minio health check] --> B[get data]
+    C[weather svc health check] --> B
+    B --> D[filter data]
+    D --> E[update dataset]
 
-    F[minio health check] --> G[get data];
-    G --> H[create report];
-    H --> I[upload report];
+    F[minio health check] --> G[get data]
+    G --> H[create report]
+    H --> I[upload report]
 ```

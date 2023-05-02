@@ -3,10 +3,11 @@ from pendulum import datetime
 from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
+from airflow.hooks.base import BaseHook
 
 query = "kosice"
-api_key = "9e547051a2a00f2bf3e17a160063002d"
-base_url = "https://api.openweathermap.org"
+api_key = BaseHook.get_connection('openweathermap').password
+base_url = BaseHook.get_connection('openweathermap').host
 
 url = f"{base_url}/data/2.5/weather"
 params = {"q": query, "appid": api_key}

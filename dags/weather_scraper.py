@@ -59,7 +59,7 @@ with DAG(
     def upload_data(entry: str):
         print(">> uploading data")
 
-        with open("/root/dataset.csv", mode="a") as file:
+        with open("dataset.csv", mode="a") as file:
             file.write(f"{entry}\n")
 
     # is_weather_alive | scrape_data | process_data | upload_data

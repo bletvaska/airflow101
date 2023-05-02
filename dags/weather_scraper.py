@@ -4,12 +4,12 @@ from airflow.decorators import task
 
 
 with DAG(
-    "hello_world",
-    description="Simple Hello world DAG.",
-    schedule="@daily",
+    "weather_scraper",
+    description="Weather scraper from openweathermap.org",
+    schedule="*/20 * * * *",
     start_date=datetime(2023, 4, 29),
     catchup=False,
-    tags=["training", "t-systems"],
+    tags=["training", "t-systems", "weather"],
 ):
 
     @task

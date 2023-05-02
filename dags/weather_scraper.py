@@ -2,6 +2,7 @@ import httpx
 from pendulum import datetime
 from airflow import DAG
 from airflow.decorators import task
+from airflow.exceptions import AirflowFailException
 
 
 with DAG(
@@ -12,9 +13,22 @@ with DAG(
     catchup=False,
     tags=["training", "t-systems", "weather"],
 ):
+    
+    @task
+    def is_weather_alive():
+        print('>> is weather alive')
+        query = "kosice"
+        api_key = "9e547051a2a00f2bf3e17a160063002dX"
+        url = f"https://api.openweathermap.org/data/2.5/weather?q={query}&appid={api_key}"
+        
+        response = httpx.head(url)
+        if response.status_code != 200:
+            print('Invalid API key.')
+            raise AirflowFailException('Invalid API key.')
+        
 
     @task
-    def download_data() -> dict:
+    def scrape_data() -> dict:
         print(">> downloading data")
 
         # get ready
@@ -52,6 +66,7 @@ with DAG(
         with open("dataset.csv", mode="a") as file:
             file.write(f"{entry}\n")
 
-    data = download_data()
+    # is_weather_alive | scrape_data | process_data | upload_data
+    data = is_weather_alive() >> scrape_data()
     entry = process_data(data)
     upload_data(entry)

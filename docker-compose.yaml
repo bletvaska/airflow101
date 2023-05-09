@@ -1,0 +1,60 @@
+version: "3"
+
+services:
+  weather:
+    image: bletvaska/weather
+    ports:
+    - 8000:8000
+    environment:
+    - WEATHER_BASE_URL="http://${HOSTIP}:8000"
+    - WEATHER_QUERY=kosice
+    - WEATHER_UNITS=metrics
+
+  db:
+    image: mariadb
+    volumes:
+    - db_data:/var/lib/mysql
+    environment:
+    - MARIADB_ROOT_PASSWORD=secret
+    - MARIADB_DATABASE=airflow
+    - MARIADB_USER=airflow
+    - MARIADB_PASSWORD=airflow123
+    ports:
+    - 3306:3306
+
+
+  # db:
+  #   image: bitnami/postgresql
+  #   environment:
+  #   - POSTGRESQL_POSTGRES_PASSWORD=secret123
+  #   - POSTGRESQL_USERNAME=pg
+  #   - POSTGRES_PASSWORD=postgres123
+  #   - POSTGRESQL_DATABASE=airflow
+  #   ports:
+  #   - 5432:5432
+  #   volumes:
+  #   - pgdata:/var/lib/postgresql/data/pgdata
+  
+  adminer:
+    image: adminer
+    ports:
+      - 5000:8080
+
+  minio:
+    image: bitnami/minio
+    environment:
+    - MINIO_ROOT_USER=admin
+    - MINIO_ROOT_PASSWORD=jahodka123
+    - MINIO_DEFAULT_BUCKETS=archive,cache,logs
+    ports:
+    - 9000:9000
+    - 9001:9001
+    volumes:
+    - minio_data:/data
+    user: "${UID:-1000}"
+
+volumes:
+  minio_data: {}
+  db_data: {}
+
+    

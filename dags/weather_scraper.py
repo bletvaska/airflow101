@@ -10,7 +10,8 @@ base_url = BaseHook.get_connection("openweathermap").host
 url = f"{base_url}/data/2.5/weather"
 params = {
     "q": "kosice", 
-    "appid": BaseHook.get_connection("openweathermap").password
+    "appid": BaseHook.get_connection("openweathermap").password,
+    "units": 'metric',
     }
 
 with DAG(

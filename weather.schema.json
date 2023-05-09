@@ -1,0 +1,69 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "title": "OpenWeatherMap.org data",
+    "description": "Validator for openweathermap.org.",
+    "type": "object",
+    "required": [
+        "weather",
+        "main",
+        "wind",
+        "dt",
+        "visibility"
+    ],
+    "properties": {
+        "dt": {
+            "description": "Timestamp of measurement.",
+            "type": "integer"
+        },
+        "visibility": {
+            "description": "Visible distance.",
+            "type": "integer"
+        },
+        "main": {
+            "description": "Main weather conditions",
+            "type": "object",
+            "required": [
+                "temp",
+                "pressure",
+                "humidity"
+            ],
+            "properties": {
+                "temp": {
+                    "description": "Current temperature.",
+                    "type": "number",
+                    "minimum": -40,
+                    "maximum": 50
+                },
+                "pressure": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Current pressure."
+                },
+                "humidity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "Current humidity."
+                }
+            }
+        },
+        "wind": {
+            "description": "Wind conditions.",
+            "type": "object",
+            "required": [
+                "speed",
+                "deg"
+            ],
+            "properties": {
+                "speed": {
+                    "type": "number"
+                },
+                "deg": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 360
+                }
+            }
+        }
+    }
+}

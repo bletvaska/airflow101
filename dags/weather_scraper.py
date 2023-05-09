@@ -32,6 +32,17 @@ with DAG(
         if response.status_code != 200:
             print("Invalid API key.")
             raise AirflowFailException("Invalid API key.")
+        
+    @task
+    def is_minio_alive():
+        print('>> is minio alive')
+        
+        base_url = BaseHook.get_connection("minio").host
+        response = httpx.head(f'{base_url}/minio/health/live')
+        
+        if response.status_code != 200:
+            print('Minio is not Alive')
+            raise AirflowFailException('MinIo is not Alive.')
 
     @task
     def scrape_data() -> dict:
@@ -66,6 +77,6 @@ with DAG(
             file.write(f"{entry}\n")
 
     # is_weather_alive | scrape_data | process_data | upload_data
-    data = is_weather_alive() >> scrape_data()
+    data = [ is_weather_alive(), is_minio_alive() ] >> scrape_data()
     entry = process_data(data)
     upload_data(entry)

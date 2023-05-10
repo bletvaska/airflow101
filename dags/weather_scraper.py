@@ -8,6 +8,8 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
 from airflow.hooks.base import BaseHook
+import boto3
+import botocore
 
 base_url = BaseHook.get_connection("openweathermap").host
 
@@ -76,29 +78,43 @@ with DAG(
     @task
     def update_dataset(entry: str):
         print(">> uploading data")
-        
-        # download file from s3 to (temporary file)
 
-        # update by appending new line
-        with open("dataset.csv", mode="a") as file:
-            file.write(f"{entry}\n")
-            
-        # upload updated file to s3
+        # download file from s3 to (temporary file)
+        minio = boto3.resource(
+            "s3",
+            endpoint_url="http://localhost:9000",
+            aws_access_key_id="admin",
+            aws_secret_access_key="jahodka123",
+        )
+        bucket = minio.Bucket('datasets')
         
-        # (cleanup)
+        # doesn't exist?
+        try:
+            bucket.download_file('weather.csv', 'local.csv')
+        except botocore.exceptions.ClientError as ex:
+            print("Dataset doesn't exist in bucket. Possible first time upload.")
             
+        # update by appending new line
+        with open("local.csv", mode="a") as file:
+            file.write(f"{entry}\n")
+
+        # upload updated file to s3
+        bucket.upload_file('local.csv', 'weather.csv')
+
+        # (cleanup)
+
     @task
     def validate_json_data(data: dict):
         # airflow directory
         path = Path(__file__).parent.parent
-        
+
         # read schema
-        with open(path / 'weather.schema.json', mode='r') as file:
+        with open(path / "weather.schema.json", mode="r") as file:
             schema = json.load(file)
-            
+
         # validate
         jsonschema.validate(instance=data, schema=schema)
-        
+
         return data
 
     # is_weather_alive | scrape_data | process_data | upload_data

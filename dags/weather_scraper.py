@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import tempfile
+import logging
 
 import httpx
 import jsonschema
@@ -11,6 +12,9 @@ from airflow.exceptions import AirflowFailException
 from airflow.hooks.base import BaseHook
 import boto3
 import botocore
+
+# create logger
+logger = logging.getLogger(__name__)  # weather_scraper
 
 base_url = BaseHook.get_connection("openweathermap").host
 
@@ -32,28 +36,28 @@ with DAG(
 
     @task
     def is_weather_alive():
-        print(">> is weather alive")
+        logger.info("is weather alive")
 
         response = httpx.head(url, params=params)
 
         if response.status_code != 200:
-            print("Invalid API key.")
+            logger.critical("Invalid API key.")
             raise AirflowFailException("Invalid API key.")
 
     @task
     def is_minio_alive():
-        print(">> is minio alive")
+        logger.info("is minio alive")
 
         base_url = BaseHook.get_connection("minio").host
         response = httpx.head(f"{base_url}/minio/health/live")
 
         if response.status_code != 200:
-            print("Minio is not Alive")
+            logger.critical("Minio is not Alive")
             raise AirflowFailException("MinIo is not Alive.")
 
     @task
     def scrape_data() -> dict:
-        print(">> downloading data")
+        logger.info("downloading data")
 
         # scrape data
         response = httpx.get(url, params=params)
@@ -62,7 +66,7 @@ with DAG(
 
     @task
     def process_data(data: dict) -> str:
-        print(">> processing data")
+        logger.info("processing data")
 
         # dt; main.temp; main.humidity; main.pressure; weather.main; visibility; wind.speed; wind.deg;
         return "{};{};{};{};{};{};{};{}".format(
@@ -78,7 +82,7 @@ with DAG(
 
     @task
     def update_dataset(entry: str):
-        print(">> uploading data")
+        logger.info("uploading data")
 
         # get ready
         minio_conn = BaseHook.get_connection('minio')
@@ -94,12 +98,12 @@ with DAG(
         
         # doesn't exist?
         path = Path(tempfile.mkstemp()[1])
-        print(f'Downloading to file {path}.')
+        logger.debug(f'Downloading to file {path}.')
         
         try:
             bucket.download_file('dataset.csv', path)
         except botocore.exceptions.ClientError as ex:
-            print("Dataset doesn't exist in bucket. Possible first time upload.")
+            logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
             
         # update by appending new line
         with open(path, mode="a") as file:
@@ -113,6 +117,8 @@ with DAG(
 
     @task
     def validate_json_data(data: dict):
+        logger.info('json data validation')
+        
         # airflow directory
         path = Path(__file__).parent.parent
 
@@ -125,6 +131,7 @@ with DAG(
 
         return data
 
+    # DAG Definition
     # is_weather_alive | scrape_data | process_data | upload_data
     raw_data = [is_weather_alive(), is_minio_alive()] >> scrape_data()
     valid_data = validate_json_data(raw_data)

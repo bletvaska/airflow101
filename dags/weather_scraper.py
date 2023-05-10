@@ -74,11 +74,18 @@ with DAG(
         )
 
     @task
-    def upload_data(entry: str):
+    def update_dataset(entry: str):
         print(">> uploading data")
+        
+        # download file from s3 to (temporary file)
 
+        # update by appending new line
         with open("dataset.csv", mode="a") as file:
             file.write(f"{entry}\n")
+            
+        # upload updated file to s3
+        
+        # (cleanup)
             
     @task
     def validate_json_data(data: dict):
@@ -98,4 +105,4 @@ with DAG(
     raw_data = [is_weather_alive(), is_minio_alive()] >> scrape_data()
     valid_data = validate_json_data(raw_data)
     entry = process_data(valid_data)
-    upload_data(entry)
+    update_dataset(entry)

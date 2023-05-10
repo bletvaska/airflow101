@@ -64,6 +64,20 @@
                     "maximum": 360
                 }
             }
+        },
+        "weather": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "main"
+                ],
+                "properties": {
+                    "main": {
+                        "type": "string"
+                    }
+                }
+            }
         }
     }
 }

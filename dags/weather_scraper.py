@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import tempfile
 
 import httpx
 import jsonschema
@@ -79,29 +80,35 @@ with DAG(
     def update_dataset(entry: str):
         print(">> uploading data")
 
-        # download file from s3 to (temporary file)
+        # get ready
         minio = boto3.resource(
             "s3",
             endpoint_url="http://localhost:9000",
             aws_access_key_id="admin",
             aws_secret_access_key="jahodka123",
         )
+        
+        # download file from s3 to (temporary file)
         bucket = minio.Bucket('datasets')
         
         # doesn't exist?
+        path = Path(tempfile.mkstemp()[1])
+        print(f'Downloading to file {path}.')
+        
         try:
-            bucket.download_file('weather.csv', 'local.csv')
+            bucket.download_file('dataset.csv', path)
         except botocore.exceptions.ClientError as ex:
             print("Dataset doesn't exist in bucket. Possible first time upload.")
             
         # update by appending new line
-        with open("local.csv", mode="a") as file:
+        with open(path, mode="a") as file:
             file.write(f"{entry}\n")
 
         # upload updated file to s3
-        bucket.upload_file('local.csv', 'weather.csv')
+        bucket.upload_file(path, 'dataset.csv')
 
         # (cleanup)
+        path.unlink()
 
     @task
     def validate_json_data(data: dict):

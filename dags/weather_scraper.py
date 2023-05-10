@@ -1,4 +1,8 @@
+import json
+from pathlib import Path
+
 import httpx
+import jsonschema
 from pendulum import datetime
 from airflow import DAG
 from airflow.decorators import task
@@ -75,8 +79,23 @@ with DAG(
 
         with open("dataset.csv", mode="a") as file:
             file.write(f"{entry}\n")
+            
+    @task
+    def validate_json_data(data: dict):
+        # airflow directory
+        path = Path(__file__).parent.parent
+        
+        # read schema
+        with open(path / 'weather.schema.json', mode='r') as file:
+            schema = json.load(file)
+            
+        # validate
+        jsonschema.validate(instance=data, schema=schema)
+        
+        return data
 
     # is_weather_alive | scrape_data | process_data | upload_data
-    data = [is_weather_alive(), is_minio_alive()] >> scrape_data()
-    entry = process_data(data)
+    raw_data = [is_weather_alive(), is_minio_alive()] >> scrape_data()
+    valid_data = validate_json_data(raw_data)
+    entry = process_data(valid_data)
     upload_data(entry)

@@ -32,7 +32,7 @@
                     "description": "Current temperature.",
                     "type": "number",
                     "minimum": -40,
-                    "maximum": 50
+                    "maximum": 300
                 },
                 "pressure": {
                     "type": "integer",

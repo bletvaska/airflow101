@@ -81,11 +81,12 @@ with DAG(
         print(">> uploading data")
 
         # get ready
+        minio_conn = BaseHook.get_connection('minio')
         minio = boto3.resource(
             "s3",
-            endpoint_url="http://localhost:9000",
-            aws_access_key_id="admin",
-            aws_secret_access_key="jahodka123",
+            endpoint_url=minio_conn.host,
+            aws_access_key_id=minio_conn.login,
+            aws_secret_access_key=minio_conn.password,
         )
         
         # download file from s3 to (temporary file)

@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)  # weather_scraper
 
 
 @task
-def extract_yesterday_data():
+def extract_yesterday_data(*args, **kwargs):
+    execution_date = kwargs['ti'].execution_date
+    
     # get ready
     minio_conn = BaseHook.get_connection("minio")
     minio = boto3.resource(
@@ -47,8 +49,8 @@ def extract_yesterday_data():
 
     # create filter for yesterday
     filter_yesterday = (
-        (df["dt"] >= pendulum.yesterday("utc").to_datetime_string()) 
-        & (df["dt"] < pendulum.today("utc").to_datetime_string())
+        (df["dt"] >= pendulum.instance(execution_date).start_of('day').add(days=-1).to_datetime_string()) 
+        & (df["dt"] < pendulum.instance(execution_date).start_of('day').to_datetime_string())
     )
 
     # make query
@@ -62,11 +64,8 @@ def extract_yesterday_data():
 
 @task
 def process_data(data: str, *args, **kwargs):
-    # print(args)
-    # print(kwargs)
-    
-    ti: TaskInstance = kwargs['ti']
-    print(ti.execution_date)
+    execution_date = kwargs['ti'].execution_date
+    print(execution_date)
     
     df = pd.read_json(data)
     df["dt"] = pd.to_datetime(df["dt"], unit="ms")

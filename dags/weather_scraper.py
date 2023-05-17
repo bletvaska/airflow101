@@ -13,6 +13,7 @@ from airflow.hooks.base import BaseHook
 import boto3
 import botocore
 
+
 # create logger
 logger = logging.getLogger(__name__)  # weather_scraper
 

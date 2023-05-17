@@ -71,8 +71,11 @@ def extract_yesterday_data():
 
 
 @task
-def process_data(data: dict):
-    print(data)
+def process_data(data: str):
+    df = pd.read_json(data)
+    df["dt"] = pd.to_datetime(df["dt"], unit="ms")
+    
+    print(df)
 
 
 @dag(catchup=False, start_date=datetime(2023, 5, 10), schedule="5 0 * * *")

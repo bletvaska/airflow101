@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)  # weather_scraper
 
 @task
 def extract_yesterday_data(*args, **kwargs):
-    execution_date = kwargs['ti'].execution_date
+    execution_date = pendulum.instance(kwargs['ti'].execution_date)
     
     # get ready
     minio_conn = BaseHook.get_connection("minio")
@@ -49,8 +49,8 @@ def extract_yesterday_data(*args, **kwargs):
 
     # create filter for yesterday
     filter_yesterday = (
-        (df["dt"] >= pendulum.instance(execution_date).start_of('day').add(days=-1).to_datetime_string()) 
-        & (df["dt"] < pendulum.instance(execution_date).start_of('day').to_datetime_string())
+        (df["dt"] >= execution_date.start_of('day').add(days=-1).to_datetime_string()) 
+        & (df["dt"] < execution_date.start_of('day').to_datetime_string())
     )
 
     # make query

@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 import tempfile
+
 import httpx
 from pendulum import datetime
 from airflow.decorators import dag, task
@@ -12,20 +13,10 @@ import botocore
 import pandas as pd
 import pendulum
 
+from helper import is_minio_alive
+
 # create logger
 logger = logging.getLogger(__name__)  # weather_scraper
-
-
-@task
-def is_minio_alive():
-    logger.info("is minio alive")
-
-    base_url = BaseHook.get_connection("minio").host
-    response = httpx.head(f"{base_url}/minio/health/live")
-
-    if response.status_code != 200:
-        logger.critical("Minio is not Alive")
-        raise AirflowFailException("MinIo is not Alive.")
 
 
 @task

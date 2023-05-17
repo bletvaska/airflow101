@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 import tempfile
 
-import httpx
 from pendulum import datetime
 from airflow.decorators import dag, task
 from airflow.models import TaskInstance
@@ -62,13 +61,20 @@ def extract_yesterday_data():
 
 
 @task
-def process_data(data: str):
+def process_data(data: str, *args, **kwargs):
+    # print(args)
+    # print(kwargs)
+    
+    ti: TaskInstance = kwargs['ti']
+    print(ti.execution_date)
+    
     df = pd.read_json(data)
     df["dt"] = pd.to_datetime(df["dt"], unit="ms")
     
     print(df)
 
 
+# DAG definition
 @dag(catchup=False, start_date=datetime(2023, 5, 10), schedule="5 0 * * *")
 def daily_report():
     data = is_minio_alive() >> extract_yesterday_data()

@@ -1,10 +1,12 @@
 from functools import lru_cache
 import logging
+from pathlib import Path
 from airflow.decorators import task
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 import httpx
 import boto3
+from jinja2 import Environment, FileSystemLoader
 
 logger = logging.getLogger(__name__)
 
@@ -34,3 +36,12 @@ def get_minio():
     
     return minio
     
+    
+def get_jinja2():
+    path = Path(__file__)
+    env = Environment(
+        loader=FileSystemLoader(path.parent / 'templates'),
+        autoescape=False
+    )
+    
+    return env

@@ -1,17 +1,15 @@
 import logging
 from pathlib import Path
 import tempfile
-from jinja2 import Environment, FileSystemLoader
 
 from pendulum import datetime
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowFailException
-import boto3
 import botocore
 import pandas as pd
 import pendulum
 
-from helper import get_minio, is_minio_alive
+from helper import get_jinja2, get_minio, is_minio_alive
 
 # create logger
 logger = logging.getLogger(__name__)  # weather_scraper
@@ -64,14 +62,10 @@ def process_data(data: str, *args, **kwargs):
     df["dt"] = pd.to_datetime(df["dt"], unit="ms")
     
     # initialize jinja2
-    path = Path(__file__)
-    env = Environment(
-        loader=FileSystemLoader(path.parent / 'templates'),
-        autoescape=False
-    )
+    jinja2 = get_jinja2()
     
     # create and render template with data
-    template = env.get_template('weather.tpl.j2')
+    template = jinja2.get_template('weather.tpl.j2')
     output = template.render(
         date=execution_date.add(days=-1).to_date_string(),
         temp_unit='°C',

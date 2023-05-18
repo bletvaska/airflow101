@@ -13,7 +13,7 @@ def get_name(name: str) -> str:
 
 
 @task
-def greetings(name: str):
+def greetings(name: str | Param):
     print(">> greetings()")
     print(f"Hello {name}!")
 
@@ -27,7 +27,10 @@ def greetings(name: str):
 )
 def hello_world(
     new_name=Param(
-        default="jano", type="string", title="Name", description="Whom to greet."
+        default="janko", type="string", title="Name", description="Whom to greet."
+    ),
+    query=Param(
+        default='kosice', type='string', title='City', description='name of the city'
     )
 ):
     # get_name | greetings

@@ -10,10 +10,9 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
 from airflow.hooks.base import BaseHook
-import boto3
 import botocore
 
-from helper import is_minio_alive
+from helper import get_minio, is_minio_alive
 
 
 # create logger
@@ -77,14 +76,7 @@ with DAG(
     def update_dataset(entry: str):
         logger.info("uploading data")
 
-        # get ready
-        minio_conn = BaseHook.get_connection('minio')
-        minio = boto3.resource(
-            "s3",
-            endpoint_url=minio_conn.host,
-            aws_access_key_id=minio_conn.login,
-            aws_secret_access_key=minio_conn.password,
-        )
+        minio = get_minio()
         
         # download file from s3 to (temporary file)
         bucket = minio.Bucket('datasets')

@@ -4,15 +4,13 @@ import tempfile
 
 from pendulum import datetime
 from airflow.decorators import dag, task
-from airflow.models import TaskInstance
-from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 import boto3
 import botocore
 import pandas as pd
 import pendulum
 
-from helper import is_minio_alive
+from helper import get_minio, is_minio_alive
 
 # create logger
 logger = logging.getLogger(__name__)  # weather_scraper
@@ -20,16 +18,10 @@ logger = logging.getLogger(__name__)  # weather_scraper
 
 @task
 def extract_yesterday_data(*args, **kwargs):
+    logging.error('>>> extracting yesterday data')
     execution_date = pendulum.instance(kwargs['ti'].execution_date)
     
-    # get ready
-    minio_conn = BaseHook.get_connection("minio")
-    minio = boto3.resource(
-        "s3",
-        endpoint_url=minio_conn.host,
-        aws_access_key_id=minio_conn.login,
-        aws_secret_access_key=minio_conn.password,
-    )
+    minio = get_minio()
 
     # download file from s3 to (temporary file)
     bucket = minio.Bucket("datasets")
@@ -64,7 +56,7 @@ def extract_yesterday_data(*args, **kwargs):
 
 @task
 def process_data(data: str, *args, **kwargs):
-    execution_date = kwargs['ti'].execution_date
+    execution_date = pendulum.instance(kwargs['ti'].execution_date)
     print(execution_date)
     
     df = pd.read_json(data)

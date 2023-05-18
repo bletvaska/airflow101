@@ -1,3 +1,4 @@
+from functools import lru_cache
 import logging
 from airflow.decorators import task
 from airflow.hooks.base import BaseHook
@@ -20,6 +21,7 @@ def is_minio_alive():
         raise AirflowFailException("MinIo is not Alive.")
 
 
+@lru_cache
 def get_minio():
     # get ready
     minio_conn = BaseHook.get_connection("minio")

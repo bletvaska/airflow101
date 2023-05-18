@@ -58,19 +58,30 @@ def extract_yesterday_data(*args, **kwargs):
 @task
 def process_data(data: str, *args, **kwargs):
     execution_date = pendulum.instance(kwargs['ti'].execution_date)
-    print(execution_date)
     
+    # get dataframe
     df = pd.read_json(data)
     df["dt"] = pd.to_datetime(df["dt"], unit="ms")
     
+    # initialize jinja2
     path = Path(__file__)
     env = Environment(
         loader=FileSystemLoader(path.parent / 'templates'),
         autoescape=False
     )
     
+    # create and render template with data
     template = env.get_template('weather.tpl.j2')
-    print(template.render())
+    output = template.render(
+        date=execution_date.to_iso8601_string(),
+        temp_unit='°C',
+        max_temp=df['temp'].max(),
+        min_temp=df['temp'].min(),
+        avg_temp=df['temp'].mean(),
+        timestamp=pendulum.now().to_iso8601_string()
+    )
+    
+    print(output)
     
     # print(df)
 

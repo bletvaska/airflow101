@@ -61,20 +61,22 @@ def process_data(data: str, *args, **kwargs):
     df = pd.read_json(data)
     df["dt"] = pd.to_datetime(df["dt"], unit="ms")
     
+    # prepare data
+    model = {
+        "date": execution_date.add(days=-1).to_date_string(),
+        "temp_unit": '°C',
+        "max_temp": round(df['temp'].max(), 2),
+        "min_temp": round(df['temp'].min(), 2),
+        "avg_temp": round(df['temp'].mean(), 2),
+        "timestamp": pendulum.now().to_iso8601_string()
+    }
+    
     # initialize jinja2
     jinja2 = get_jinja2()
     
     # create and render template with data
-    date = execution_date.add(days=-1).to_date_string()
     template = jinja2.get_template('weather.tpl.j2')
-    output = template.render(
-        date=date,
-        temp_unit='°C',
-        max_temp=round(df['temp'].max(), 2),
-        min_temp=round(df['temp'].min(), 2),
-        avg_temp=round(df['temp'].mean(), 2),
-        timestamp=pendulum.now().to_iso8601_string()
-    )
+    output = template.render(model)
     
     minio = get_minio()
     bucket = minio.Bucket('reports')
@@ -85,14 +87,14 @@ def process_data(data: str, *args, **kwargs):
         # print(output, file=file)
         
     # 2023-05-18_kosice.txt
-    bucket.upload_file(path, f'{date}_kosice.txt')
+    bucket.upload_file(path, f'{model["date"]}_kosice.txt')
     
     # cleanup
     path.unlink()
 
 
 # DAG definition
-@dag(catchup=False, start_date=datetime(2023, 5, 10), schedule="5 0 * * *")
+@dag(catchup=True, start_date=datetime(2023, 5, 1), schedule="5 0 * * *")
 def daily_report():
     data = is_minio_alive() >> extract_yesterday_data()
     process_data(data)

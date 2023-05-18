@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 import tempfile
+from jinja2 import Environment, FileSystemLoader
 
 from pendulum import datetime
 from airflow.decorators import dag, task
@@ -62,7 +63,16 @@ def process_data(data: str, *args, **kwargs):
     df = pd.read_json(data)
     df["dt"] = pd.to_datetime(df["dt"], unit="ms")
     
-    print(df)
+    path = Path(__file__)
+    env = Environment(
+        loader=FileSystemLoader(path.parent / 'templates'),
+        autoescape=False
+    )
+    
+    template = env.get_template('weather.tpl.j2')
+    print(template.render())
+    
+    # print(df)
 
 
 # DAG definition
@@ -73,16 +83,3 @@ def daily_report():
 
 
 daily_report()
-
-
-# @task
-# def xdebug(*args, **kwargs):
-#     print(">>> debug")
-#     print(kwargs)
-#     print(args)
-#     ti: TaskInstance = kwargs['ti']
-#     print(TaskInstance.execution_date)
-
-#     dt = ti.execution_date
-#     print(dt)
-#     print(type(dt))

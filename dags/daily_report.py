@@ -73,11 +73,11 @@ def process_data(data: str, *args, **kwargs):
     # create and render template with data
     template = env.get_template('weather.tpl.j2')
     output = template.render(
-        date=execution_date.to_iso8601_string(),
+        date=execution_date.add(days=-1).to_date_string(),
         temp_unit='°C',
-        max_temp=df['temp'].max(),
-        min_temp=df['temp'].min(),
-        avg_temp=df['temp'].mean(),
+        max_temp=round(df['temp'].max(), 2),
+        min_temp=round(df['temp'].min(), 2),
+        avg_temp=round(df['temp'].mean(), 2),
         timestamp=pendulum.now().to_iso8601_string()
     )
     

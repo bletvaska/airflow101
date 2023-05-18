@@ -65,9 +65,10 @@ def process_data(data: str, *args, **kwargs):
     jinja2 = get_jinja2()
     
     # create and render template with data
+    date = execution_date.add(days=-1).to_date_string()
     template = jinja2.get_template('weather.tpl.j2')
     output = template.render(
-        date=execution_date.add(days=-1).to_date_string(),
+        date=date,
         temp_unit='°C',
         max_temp=round(df['temp'].max(), 2),
         min_temp=round(df['temp'].min(), 2),
@@ -75,9 +76,19 @@ def process_data(data: str, *args, **kwargs):
         timestamp=pendulum.now().to_iso8601_string()
     )
     
-    print(output)
+    minio = get_minio()
+    bucket = minio.Bucket('reports')
     
-    # print(df)
+    path = Path(tempfile.mkstemp()[1])
+    with open(path, mode='w') as file:
+        file.write(output)
+        # print(output, file=file)
+        
+    # 2023-05-18_kosice.txt
+    bucket.upload_file(path, f'{date}_kosice.txt')
+    
+    # cleanup
+    path.unlink()
 
 
 # DAG definition

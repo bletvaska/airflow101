@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 import tempfile
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 from pendulum import datetime
 from airflow.decorators import dag, task
@@ -78,6 +80,17 @@ def process_data(data: str, *args, **kwargs):
     # create and render template with data
     template = jinja2.get_template('weather.tpl.j2')
     output = template.render(model)
+    
+    # create graph
+    _, ax = plt.subplots()
+    ax.set_title(f"Teplota zo dňa {model['date']}")
+    ax.set_xlabel("čas (hod)")
+    ax.set_ylabel("teplota (°C)")
+    ax.plot(df["dt"].array, df["temp"].array)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+
+    _, tmp_path = tempfile.mkstemp(suffix=".png")
+    plt.savefig('/tmp/graph.png') # tmp_path)
     
     # generate pdf
     html_template = jinja2.get_template('weather.tpl.html.j2')

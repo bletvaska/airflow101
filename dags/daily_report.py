@@ -8,6 +8,7 @@ from airflow.exceptions import AirflowFailException
 import botocore
 import pandas as pd
 import pendulum
+from weasyprint import HTML
 
 from helper import get_jinja2, get_minio, is_minio_alive
 
@@ -78,6 +79,11 @@ def process_data(data: str, *args, **kwargs):
     template = jinja2.get_template('weather.tpl.j2')
     output = template.render(model)
     
+    # generate pdf
+    html_template = jinja2.get_template('weather.tpl.html.j2')
+    output_html = html_template.render(model)
+    HTML(string=output_html).write_pdf('report.pdf')
+    
     minio = get_minio()
     bucket = minio.Bucket('reports')
     
@@ -88,6 +94,7 @@ def process_data(data: str, *args, **kwargs):
         
     # 2023-05-18_kosice.txt
     bucket.upload_file(path, f'{model["date"]}_kosice.txt')
+    bucket.upload_file('report.pdf', 'report.pdf')
     
     # cleanup
     path.unlink()

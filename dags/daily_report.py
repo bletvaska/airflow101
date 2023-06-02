@@ -107,7 +107,7 @@ def process_data(data: str, *args, **kwargs):
         
     # 2023-05-18_kosice.txt
     bucket.upload_file(path, f'{model["date"]}_kosice.txt')
-    bucket.upload_file('report.pdf', 'report.pdf')
+    bucket.upload_file('report.pdf', f'{model["date"]}_kosice.pdf')
     
     # cleanup
     path.unlink()

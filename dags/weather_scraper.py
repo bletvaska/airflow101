@@ -1,5 +1,7 @@
 import json
 import logging
+from pathlib import Path
+import tempfile
 
 from pendulum import datetime
 from airflow.decorators import dag, task
@@ -8,6 +10,8 @@ from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 import httpx
 from jsonschema import validate
+import boto3
+import botocore
 
 
 logger = logging.getLogger(__name__)
@@ -68,12 +72,32 @@ def process_data(data: dict) -> str:
 def publish_data(line: str):
     logger.info("Publishing Data")
 
-    # file = open('dataset.csv', mode='a')
-    # print(line, file=file)
-    # file.close()
+    # minio client
+    minio = boto3.resource('s3',
+        endpoint_url='http://localhost:9000',
+        aws_access_key_id='minio',
+        aws_secret_access_key='secret123',
+    )
+    bucket = minio.Bucket('datasets')
+    path = Path(tempfile.mkstemp()[1])
 
-    with open('/home/ubuntu/dataset.csv', mode='a') as dataset:
+    # download dataset
+    logger.info(f'Downloading dataset to file {path}')
+
+    try:
+        bucket.download_file('dataset.csv', path)
+    except botocore.exceptions.ClientError:
+        logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
+
+    # append new measurement as line
+    with open(path, mode='a') as dataset:
         print(line, file=dataset)
+
+    # upload dataset
+    bucket.upload_file(path, 'dataset.csv')
+
+    # cleanup
+    path.unlink(True)
 
 
 @task

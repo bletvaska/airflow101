@@ -1,0 +1,7 @@
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+__pycache__/
+logs/
+webserver_config.py
+

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "openweathermap.org schema",
+  "description": "schema for data from weather service",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "name of the city",
+      "type": "string"
+    },
+    "dt": {
+      "description": "measurement timestamp",
+      "type": "integer"
+    },
+    "main": {
+      "type": "object",
+      "properties": {
+        "temp": {
+          "type": "number",
+          "minimum": -273
+        },
+        "pressure": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "humidity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "temp",
+        "humidity",
+        "pressure"
+      ]
+    }
+  },
+  "required": [
+    "name",
+    "dt",
+    "main",
+    "sys",
+    "wind"
+  ]
+}

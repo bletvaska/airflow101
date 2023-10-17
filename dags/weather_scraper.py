@@ -78,13 +78,13 @@ def publish_data(line: str):
         aws_access_key_id='minio',
         aws_secret_access_key='secret123',
     )
-    bucket = minio.Bucket('datasets')
-    path = Path(tempfile.mkstemp()[1])
 
-    # download dataset
+    path = Path(tempfile.mkstemp()[1])
     logger.info(f'Downloading dataset to file {path}')
 
+    # download dataset to temporary file
     try:
+        bucket = minio.Bucket('datasets')
         bucket.download_file('dataset.csv', path)
     except botocore.exceptions.ClientError:
         logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")

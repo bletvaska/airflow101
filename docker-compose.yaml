@@ -1,0 +1,18 @@
+version: "3"
+
+services:
+
+  minio:
+    image: bitnami/minio
+    ports:
+    - 9000:9000
+    - 9001:9001
+    environment:
+    - MINIO_ROOT_USER=minio
+    - MINIO_ROOT_PASSWORD=secret123
+    - MINIO_DEFAULT_BUCKETS=datasets,reports
+    volumes:
+    - storage:/bitnami/minio/data
+
+volumes:
+  storage:

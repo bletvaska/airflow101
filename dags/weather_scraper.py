@@ -73,10 +73,11 @@ def publish_data(line: str):
     logger.info("Publishing Data")
 
     # minio client
+    conn = BaseHook.get_connection('minio')
     minio = boto3.resource('s3',
-        endpoint_url='http://localhost:9000',
-        aws_access_key_id='minio',
-        aws_secret_access_key='secret123',
+        endpoint_url=f'{conn.schema}://{conn.host}:{conn.port}',
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password,
     )
 
     path = Path(tempfile.mkstemp()[1])

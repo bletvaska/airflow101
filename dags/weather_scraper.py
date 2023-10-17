@@ -9,10 +9,12 @@ import httpx
 from jsonschema import validate
 
 
+url = "http://api.openweathermap.org/data/2.5/weather"
+
+
 @task
 def is_service_alive():
     print('>> Openweathermap.org Healthcheck')
-    url = "http://api.openweathermap.org/data/2.5/weather"
     connection = BaseHook.get_connection('openweathermap')
     params = {
         'appid': connection.password
@@ -27,7 +29,6 @@ def is_service_alive():
 @task
 def scrape_data(query: str) -> dict:
     print(">> Scraping Data")
-    url = "http://api.openweathermap.org/data/2.5/weather"
     connection = BaseHook.get_connection('openweathermap')
     params = {
         'units': 'metric',
@@ -68,7 +69,7 @@ def publish_data(line: str):
     # print(line, file=file)
     # file.close()
 
-    with open('dataset.csv', mode='a') as dataset:
+    with open('/home/ubuntu/dataset.csv', mode='a') as dataset:
         print(line, file=dataset)
 
 

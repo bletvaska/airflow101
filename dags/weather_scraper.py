@@ -1,4 +1,5 @@
 import json
+import logging
 
 from pendulum import datetime
 from airflow.decorators import dag, task
@@ -9,18 +10,20 @@ import httpx
 from jsonschema import validate
 
 
+logger = logging.getLogger(__name__)
 url = "http://api.openweathermap.org/data/2.5/weather"
 
 
 @task
 def is_service_alive():
-    print('>> Openweathermap.org Healthcheck')
+    logger.info('Openweathermap.org Healthcheck')
     connection = BaseHook.get_connection('openweathermap')
     params = {
         'appid': connection.password
     }
     response = httpx.get(url, params=params)
     if response.status_code == 401:
+        logger.error('Invalid API key has been provided.')
         raise AirflowFailException('Invalid API Key.')
 
     # return None
@@ -28,7 +31,7 @@ def is_service_alive():
 
 @task
 def scrape_data(query: str) -> dict:
-    print(">> Scraping Data")
+    logger.info("Scraping Data")
     connection = BaseHook.get_connection('openweathermap')
     params = {
         'units': 'metric',
@@ -42,7 +45,7 @@ def scrape_data(query: str) -> dict:
 
 @task
 def process_data(data: dict) -> str:
-    print(">> Processing Data")
+    logger.info("Processing Data")
 
     # return f'{data["dt"]};' \
     #        f'mesto;krajina;teplota;tlak;vlhkost;sila vetra; smer vetra;vychod slnka;zapad slnka'
@@ -63,7 +66,7 @@ def process_data(data: dict) -> str:
 
 @task
 def publish_data(line: str):
-    print(">> Publishing Data")
+    logger.info("Publishing Data")
 
     # file = open('dataset.csv', mode='a')
     # print(line, file=file)

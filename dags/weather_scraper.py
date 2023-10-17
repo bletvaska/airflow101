@@ -4,8 +4,24 @@ from pendulum import datetime
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 from airflow.hooks.base import BaseHook
+from airflow.exceptions import AirflowFailException
 import httpx
 from jsonschema import validate
+
+
+@task
+def is_service_alive():
+    print('>> Openweathermap.org Healthcheck')
+    url = "http://api.openweathermap.org/data/2.5/weather"
+    connection = BaseHook.get_connection('openweathermap')
+    params = {
+        'appid': connection.password
+    }
+    response = httpx.get(url, params=params)
+    if response.status_code == 401:
+        raise AirflowFailException('Invalid API Key.')
+
+    # return None
 
 
 @task
@@ -76,7 +92,7 @@ def validate_schema(instance: dict) -> dict:
     catchup=False,
 )
 def main(query=Param(type='string', default='kosice,sk', title='Query', description='Name of the city to get wather info.')):
-    json_data = scrape_data('kosice,sk')
+    json_data = is_service_alive() >> scrape_data('kosice,sk')
     validated_data = validate_schema(json_data)
     entry = process_data(validated_data)
     publish_data(entry)

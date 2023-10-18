@@ -34,6 +34,19 @@ def is_service_alive():
 
 
 @task
+def is_minio_alive():
+    logger.info('MinIO Helathcheck')
+
+    conn = BaseHook.get_connection('minio')
+    base_url = f'{conn.schema}://{conn.host}:{conn.port}'
+
+    response = httpx.get(f'{base_url}/minio/health/live')
+    if response.status_code != 200:
+        logger.error('MinIO is not healthy!')
+        raise AirflowFailException('MinIO is not healthy!')
+
+
+@task
 def scrape_data(query: str) -> dict:
     logger.info("Scraping Data")
     connection = BaseHook.get_connection('openweathermap')
@@ -121,7 +134,7 @@ def validate_schema(instance: dict) -> dict:
     catchup=False,
 )
 def main(query=Param(type='string', default='kosice,sk', title='Query', description='Name of the city to get wather info.')):
-    json_data = is_service_alive() >> scrape_data('kosice,sk')
+    json_data = [ is_service_alive(), is_minio_alive() ] >> scrape_data('kosice,sk')
     validated_data = validate_schema(json_data)
     entry = process_data(validated_data)
     publish_data(entry)

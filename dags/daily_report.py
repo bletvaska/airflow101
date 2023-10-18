@@ -3,15 +3,13 @@ from pathlib import Path
 import tempfile
 
 from airflow.decorators import dag, task
-from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 # from pendulum import datetime
 import pendulum
-import boto3
 import botocore
 import pandas as pd
 
-from helper import is_minio_alive
+from helper import is_minio_alive, get_minio
 
 logger = logging.getLogger(__name__)
 
@@ -19,19 +17,12 @@ logger = logging.getLogger(__name__)
 @task
 def extract_yesterday_data() -> str:
     # download dataset
-    conn = BaseHook.get_connection('minio')
-    minio = boto3.resource('s3',
-        endpoint_url=f'{conn.schema}://{conn.host}:{conn.port}',
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
-
     path = Path(tempfile.mkstemp()[1])
     logger.info(f'Downloading dataset to file {path}')
 
     try:
         # download dataset to temporary file
-        bucket = minio.Bucket('datasets')
+        bucket = get_minio().Bucket('datasets')
         bucket.download_file('dataset.csv', path)
 
         # create dataframe

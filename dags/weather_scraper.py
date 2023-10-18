@@ -10,10 +10,9 @@ from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 import httpx
 from jsonschema import validate
-import boto3
 import botocore
 
-from helper import is_minio_alive
+from helper import get_minio, is_minio_alive
 
 
 logger = logging.getLogger(__name__)
@@ -74,20 +73,12 @@ def process_data(data: dict) -> str:
 def publish_data(line: str):
     logger.info("Publishing Data")
 
-    # minio client
-    conn = BaseHook.get_connection('minio')
-    minio = boto3.resource('s3',
-        endpoint_url=f'{conn.schema}://{conn.host}:{conn.port}',
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
-
     path = Path(tempfile.mkstemp()[1])
     logger.info(f'Downloading dataset to file {path}')
 
     # download dataset to temporary file
     try:
-        bucket = minio.Bucket('datasets')
+        bucket = get_minio().Bucket('datasets')
         bucket.download_file('dataset.csv', path)
     except botocore.exceptions.ClientError:
         logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")

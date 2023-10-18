@@ -4,8 +4,18 @@ from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
 from airflow.hooks.base import BaseHook
 import httpx
+import boto3
 
 logger = logging.getLogger(__name__)
+
+
+def get_minio():
+    conn = BaseHook.get_connection('minio')
+    return boto3.resource('s3',
+        endpoint_url=f'{conn.schema}://{conn.host}:{conn.port}',
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password,
+    )
 
 
 @task

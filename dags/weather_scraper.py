@@ -13,6 +13,8 @@ from jsonschema import validate
 import boto3
 import botocore
 
+from helper import is_minio_alive
+
 
 logger = logging.getLogger(__name__)
 url = "http://api.openweathermap.org/data/2.5/weather"
@@ -31,19 +33,6 @@ def is_service_alive():
         raise AirflowFailException('Invalid API Key.')
 
     # return None
-
-
-@task
-def is_minio_alive():
-    logger.info('MinIO Helathcheck')
-
-    conn = BaseHook.get_connection('minio')
-    base_url = f'{conn.schema}://{conn.host}:{conn.port}'
-
-    response = httpx.get(f'{base_url}/minio/health/live')
-    if response.status_code != 200:
-        logger.error('MinIO is not healthy!')
-        raise AirflowFailException('MinIO is not healthy!')
 
 
 @task

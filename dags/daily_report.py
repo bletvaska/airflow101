@@ -5,31 +5,19 @@ import tempfile
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
-import httpx
 # from pendulum import datetime
 import pendulum
 import boto3
 import botocore
 import pandas as pd
 
+from helper import is_minio_alive
+
 logger = logging.getLogger(__name__)
 
 
 @task
-def is_minio_alive():
-    logger.info('MinIO Healthcheck')
-
-    conn = BaseHook.get_connection('minio')
-    base_url = f'{conn.schema}://{conn.host}:{conn.port}'
-
-    response = httpx.get(f'{base_url}/minio/health/live')
-    if response.status_code != 200:
-        logger.error('MinIO is not healthy!')
-        raise AirflowFailException('MinIO is not healthy!')
-
-
-@task
-def extract_yesterday_data():
+def extract_yesterday_data() -> str:
     # download dataset
     conn = BaseHook.get_connection('minio')
     minio = boto3.resource('s3',
@@ -62,10 +50,11 @@ def extract_yesterday_data():
         df['sunrise'] = pd.to_datetime(df['sunrise'], unit='s')
 
         # create filter for yesterdays entries only
+        date = pendulum.today('utc')
         filter_yesterday = (
-            df['dt'] >= pendulum.yesterday('utc').to_date_string()
+            df['dt'] >= date.add(days=-1).to_date_string()
         ) & (
-            df['dt'] < pendulum.today('utc').to_date_string()
+            df['dt'] < date.to_date_string()
         )
 
         # filter yesterday data
@@ -96,8 +85,8 @@ def create_report(data: str):
     catchup=False
 )
 def main():
-    yesterday_df = is_minio_alive() >> extract_yesterday_data()
-    create_report(yesterday_df)
+    yesterday = is_minio_alive() >> extract_yesterday_data()
+    create_report(yesterday)
 
 
 main()

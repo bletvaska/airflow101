@@ -131,6 +131,7 @@ def validate_schema(instance: dict) -> dict:
     start_date=datetime(2023, 10, 1),
     schedule='*/20 * * * *',
     description='Scrapes weather from openweathermap.org',
+    tags=['weather', 'devops'],
     catchup=False,
 )
 def main(query=Param(type='string', default='kosice,sk', title='Query', description='Name of the city to get wather info.')):

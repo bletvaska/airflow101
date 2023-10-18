@@ -134,7 +134,10 @@ def validate_schema(instance: dict) -> dict:
     catchup=False,
 )
 def main(query=Param(type='string', default='kosice,sk', title='Query', description='Name of the city to get wather info.')):
-    json_data = [ is_service_alive(), is_minio_alive() ] >> scrape_data('kosice,sk')
+    json_data = [
+                    is_service_alive(),
+                    is_minio_alive()
+                ] >> scrape_data('kosice,sk')
     validated_data = validate_schema(json_data)
     entry = process_data(validated_data)
     publish_data(entry)

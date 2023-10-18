@@ -61,7 +61,7 @@ def extract_yesterday_data():
         df['sunset'] = pd.to_datetime(df['sunset'], unit='s')
         df['sunrise'] = pd.to_datetime(df['sunrise'], unit='s')
 
-        # create filters
+        # create filter for yesterdays entries only
         filter_yesterday = (
             df['dt'] >= pendulum.yesterday('utc').to_date_string()
         ) & (
@@ -72,12 +72,14 @@ def extract_yesterday_data():
         yesterday = df.loc[ filter_yesterday, ['dt', 'temp', 'humidity'] ]
         return yesterday.to_json()
 
-        path.unlink(True)
     except botocore.exceptions.ClientError:
-        path.unlink(True)
         message = f"Dataset is missing in bucket {bucket.name}."
         logger.error(message)
         raise AirflowFailException(message)
+
+    finally:
+        if path.exists():
+            path.unlink()
 
 
 @task

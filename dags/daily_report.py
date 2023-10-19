@@ -50,7 +50,7 @@ def extract_yesterday_data() -> str:
         )
 
         # filter yesterday data
-        yesterday = df.loc[ filter_yesterday, ['dt', 'temp', 'humidity'] ]
+        yesterday = df.loc[ filter_yesterday, ['dt', 'temp', 'humidity', 'city', 'country'] ]
         return yesterday.to_json()
 
     except botocore.exceptions.ClientError:
@@ -78,15 +78,19 @@ def create_report(data: str):
     template = env.get_template('weather.tpl.j2')
 
     # prepare data
+    ts = df['dt'].iloc[0] / 1000
+    city = df['city'].iloc[0]
+    country = df['country'].iloc[0]
+    # from IPython import embed; embed()
     data = {
-        'city': '',
-        'country': '',
-        'date': '',
-        'max_temperature': '',
-        'min_temperature': '',
-        'avg_temperature': '',
+        'city': city,
+        'country': country,
+        'date': pendulum.from_timestamp(ts).to_date_string(),
+        'max_temp': df['temp'].max(),
+        'min_temp': df['temp'].min(),
+        'avg_temp': df['temp'].mean(),
         'temp_unit': '°C',
-        'timestamp': '',
+        'timestamp': pendulum.now().to_iso8601_string(),
     }
 
     # render

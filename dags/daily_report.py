@@ -65,6 +65,7 @@ def extract_yesterday_data() -> str:
 
 @task
 def create_report(data: str):
+    # get ready
     df = pd.read_json(data)
     path = Path(__file__).parent / 'templates'
 
@@ -73,9 +74,23 @@ def create_report(data: str):
         autoescape=False
     )
 
+    # create template
     template = env.get_template('weather.tpl.j2')
 
-    print(template.render())
+    # prepare data
+    data = {
+        'city': '',
+        'country': '',
+        'date': '',
+        'max_temperature': '',
+        'min_temperature': '',
+        'avg_temperature': '',
+        'temp_unit': '°C',
+        'timestamp': '',
+    }
+
+    # render
+    print(template.render(data))
 
 
 @dag(

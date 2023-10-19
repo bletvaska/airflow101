@@ -67,15 +67,6 @@ def extract_yesterday_data() -> str:
 def create_report(data: str):
     # get ready
     df = pd.read_json(data)
-    path = Path(__file__).parent / 'templates'
-
-    env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(path),
-        autoescape=False
-    )
-
-    # create template
-    template = env.get_template('weather.tpl.j2')
 
     # prepare data
     ts = df['dt'].iloc[0] / 1000
@@ -83,7 +74,9 @@ def create_report(data: str):
     country = df['country'].iloc[0]
     date = pendulum.from_timestamp(ts).to_date_string()
     # from IPython import embed; embed()
-    data = {
+
+    # return data
+    return {
         'city': city,
         'country': country,
         'date': date,
@@ -94,17 +87,36 @@ def create_report(data: str):
         'timestamp': pendulum.now().to_iso8601_string(),
     }
 
+
+@task
+def create_text_report(data: dict):
+    # get ready
+    path = Path(__file__).parent / 'templates'
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(path),
+        autoescape=False
+    )
+
+    # create template
+    template = env.get_template('weather.tpl.j2')
+
     # save report to file
     path = Path(tempfile.mkstemp()[1])
     with open(path, 'w') as report:
         print(template.render(data), file=report)
 
     # upload report
+    key = f'{data["city"]}_{data["country"]}_{data["date"]}.txt'
     bucket = get_minio().Bucket('reports')
-    bucket.upload_file(path, f'{city}_{country}_{date}.txt')
+    bucket.upload_file(path, key)
 
     # cleanup
     path.unlink(True)
+
+
+@task
+def create_pdf_report(data: dict):
+    pass
 
 
 @dag(
@@ -116,7 +128,9 @@ def create_report(data: str):
 )
 def main():
     yesterday = is_minio_alive() >> extract_yesterday_data()
-    create_report(yesterday)
+    data = create_report(yesterday)
+    create_pdf_report(data)
+    create_text_report(data)
 
 
 main()

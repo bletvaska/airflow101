@@ -81,11 +81,12 @@ def create_report(data: str):
     ts = df['dt'].iloc[0] / 1000
     city = df['city'].iloc[0]
     country = df['country'].iloc[0]
+    date = pendulum.from_timestamp(ts).to_date_string()
     # from IPython import embed; embed()
     data = {
         'city': city,
         'country': country,
-        'date': pendulum.from_timestamp(ts).to_date_string(),
+        'date': date,
         'max_temp': df['temp'].max(),
         'min_temp': df['temp'].min(),
         'avg_temp': df['temp'].mean(),
@@ -93,8 +94,17 @@ def create_report(data: str):
         'timestamp': pendulum.now().to_iso8601_string(),
     }
 
-    # render
-    print(template.render(data))
+    # save report to file
+    path = Path(tempfile.mkstemp()[1])
+    with open(path, 'w') as report:
+        print(template.render(data), file=report)
+
+    # upload report
+    bucket = get_minio().Bucket('reports')
+    bucket.upload_file(path, f'{city}_{country}_{date}.txt')
+
+    # cleanup
+    path.unlink(True)
 
 
 @dag(

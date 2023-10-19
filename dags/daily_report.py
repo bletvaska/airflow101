@@ -5,10 +5,12 @@ import tempfile
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowFailException
 import jinja2
-# from pendulum import datetime
 import pendulum
 import botocore
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
 
 from helper import is_minio_alive, get_minio
 
@@ -76,7 +78,7 @@ def create_report(data: str):
     # from IPython import embed; embed()
 
     # return data
-    return {
+    report = {
         'city': city,
         'country': country,
         'date': date,
@@ -87,10 +89,16 @@ def create_report(data: str):
         'timestamp': pendulum.now().to_iso8601_string(),
     }
 
+    return {
+        'report': report,
+        'data': data
+    }
+
 
 @task
-def create_text_report(data: dict):
+def create_text_report(report: dict):
     # get ready
+    data = report['report']
     path = Path(__file__).parent / 'templates'
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(path),
@@ -116,7 +124,29 @@ def create_text_report(data: dict):
 
 @task
 def create_pdf_report(data: dict):
-    pass
+    # get ready
+    report = data['report']
+    df = pd.read_json(data['data'])
+    df['dt'] = pd.to_datetime(df['dt'], unit='ms')
+
+    # plot
+    fig, ax = plt.subplots()
+    ax.plot(df['dt'].array, df['temp'].array)
+
+    # format graph
+    date = 'xxx' # report['date']
+    city = report['city']
+
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+    ax.set(
+        title = f'Teplota v meste {city} dňa {date}',
+        ylabel = 'teplota (°C)',
+        xlabel = 'čas (hod)'
+    )
+
+    # save figure
+    path = Path(__file__).parent / 'figure.png'
+    plt.savefig(path)
 
 
 @dag(

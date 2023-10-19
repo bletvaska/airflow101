@@ -134,8 +134,9 @@ def create_pdf_report(data: dict):
     ax.plot(df['dt'].array, df['temp'].array)
 
     # format graph
-    date = 'xxx' # report['date']
+    date = report['date']
     city = report['city']
+    country = report['country']
 
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
     ax.set(
@@ -145,8 +146,16 @@ def create_pdf_report(data: dict):
     )
 
     # save figure
-    path = Path(__file__).parent / 'figure.png'
-    plt.savefig(path)
+    path = Path(tempfile.mkstemp()[1])
+    plt.savefig(path, format='png')
+
+    # upload report
+    key = f'{city}_{country}_{date}.png'
+    bucket = get_minio().Bucket('reports')
+    bucket.upload_file(path, key)
+
+    # cleanup
+    path.unlink(True)
 
 
 @dag(

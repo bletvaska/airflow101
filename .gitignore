@@ -4,4 +4,5 @@ airflow-webserver.pid
 __pycache__/
 logs/
 webserver_config.py
+.csv
 

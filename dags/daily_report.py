@@ -4,6 +4,7 @@ import tempfile
 
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowFailException
+import jinja2
 # from pendulum import datetime
 import pendulum
 import botocore
@@ -65,7 +66,16 @@ def extract_yesterday_data() -> str:
 @task
 def create_report(data: str):
     df = pd.read_json(data)
-    print(df)
+    path = Path(__file__).parent / 'templates'
+
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(path),
+        autoescape=False
+    )
+
+    template = env.get_template('weather.tpl.j2')
+
+    print(template.render())
 
 
 @dag(

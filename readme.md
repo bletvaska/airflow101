@@ -19,7 +19,8 @@ Pre absolvovanie kurzu je potrené poznať minimálne základy jazyka Python. Zn
 * tvorba reportov pomocou knižnice [Jinja](https://jinja.palletsprojects.com/en/3.1.x/)
 * generovanie PDF reportov pomocou knižnice [WeasyPrint](https://www.courtbouillon.org/weasyprint)
 * práca s časom a dátumom pomocou knižnice [Pendulum](https://pendulum.eustace.io/)
-* tvorba nástrojov s parametrami z príkazového riadku
+* tvorba nástrojov s parametrami z príkazového riadku pomocou knižnice [click](https://click.palletsprojects.com/)
+* tvorba notifikácií pomocou knižnice [Apprise](https://github.com/caronc/apprise)
 * finty/tipy/triky/ďalšie nástroje, ktoré oceníte pre svoju prácu
 
 

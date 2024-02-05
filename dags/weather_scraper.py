@@ -54,9 +54,12 @@ def publish_data(line: str):
 def is_service_alive():
     try:
         connection = BaseHook.get_connection('openweathermap')
-        response = httpx.head(connection.host)
-        if response.status_code != 401:
-            raise AirflowFailException('Something went wrong.')
+        params = {
+            'appid': connection.get_password()
+        }
+        response = httpx.get(connection.host, params=params)
+        if response.status_code == 401:
+            raise AirflowFailException('Invalid API Key')
     except httpx.ConnectError:
         raise AirflowFailException('Invalid host name.')
 

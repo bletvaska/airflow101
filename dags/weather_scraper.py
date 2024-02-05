@@ -1,3 +1,5 @@
+import logging
+
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
 from airflow.models.param import Param
@@ -5,10 +7,11 @@ from airflow.exceptions import AirflowFailException
 import httpx
 from pendulum import datetime
 
+logger = logging.getLogger(__file__)
 
 @task
 def scrape_data(query: str) -> dict:
-    print('>> Scraping data')
+    logger.info('Scraping data')
 
     connection = BaseHook.get_connection('openweathermap')
 
@@ -24,7 +27,7 @@ def scrape_data(query: str) -> dict:
 
 @task
 def process_data(data: dict) -> str:
-    print('>> Processing data')
+    logger.info('Processing data')
 
     line = '{},{},{},{},{},{},{},{},{},{}'.format(
         data['dt'],
@@ -44,7 +47,7 @@ def process_data(data: dict) -> str:
 
 @task
 def publish_data(line: str):
-    print('>> Publishing data')
+    logger.info('Publishing data')
 
     with open('/home/ubuntu/dataset.csv', 'a') as dataset:
         print(line, file=dataset)
@@ -61,6 +64,7 @@ def is_service_alive():
         if response.status_code == 401:
             raise AirflowFailException('Invalid API Key')
     except httpx.ConnectError:
+        logger.error(f'Invalid hostname {connection.host}')
         raise AirflowFailException('Invalid host name.')
 
 

@@ -12,6 +12,7 @@ import boto3
 import botocore
 
 logger = logging.getLogger(__file__)
+DATASET = "weather.csv"
 
 
 @task
@@ -57,12 +58,11 @@ def publish_data(line: str):
         aws_secret_access_key="jahodka123",
     )
 
-    DATASET = 'weather.csvx'
     tmpfile = tempfile.mkstemp()[1]
     path = Path(tmpfile)
-    logger.info(f'Downloading dataset to file {path}')
+    logger.info(f"Downloading dataset to file {path}")
 
-    bucket = minio.Bucket('datasets')
+    bucket = minio.Bucket("datasets")
     try:
         bucket.download_file(DATASET, path)
     except botocore.exceptions.ClientError:

@@ -47,9 +47,10 @@ def publish_data(line: str):
 
 @click.command(help='Download current weather condition in CSV format.')
 @click.argument('query')
-@click.option('--units', default='metric', help='Unit of measurement')
+@click.option('--units', type=click.Choice(['metric', 'standard', 'imperial']), default='metric', help='Unit of measurement')
 @click.option('--appid', default=None, help='API keZy for openweathermap.org service.', envvar='APPID')
 def main(query: str, units: str, appid: str):
+    # print(query, units, appid)
     data = scrape_data(query, units, appid)
     processed_data = process_data(data)
     publish_data(processed_data)

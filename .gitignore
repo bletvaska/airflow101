@@ -4,4 +4,4 @@ airflow-webserver.pid
 airflow.cfg
 airflow.db
 webserver_config.py
-
+*.csv

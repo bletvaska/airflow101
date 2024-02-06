@@ -17,13 +17,17 @@ DATASET = "weather.csv"
 
 @task
 def scrape_data(query: str) -> dict:
-    logger.info("Scraping data")
+    logger.info(f"Scraping data for {query}")
 
     connection = BaseHook.get_connection("openweathermap")
 
     params = {"q": query, "units": "metric", "appid": connection.get_password()}
 
     response = httpx.get(connection.host, params=params)
+    if response.status_code != 200:
+        logger.error("Request error")
+        raise AirflowFailException("Request Error")
+
     return response.json()
 
 
@@ -51,11 +55,12 @@ def process_data(data: dict) -> str:
 def publish_data(line: str):
     logger.info("Publishing data")
 
+    conn = BaseHook.get_connection("minio")
     minio = boto3.resource(
         "s3",
-        endpoint_url="http://localhost:9000",
-        aws_access_key_id="admin",
-        aws_secret_access_key="jahodka123",
+        endpoint_url=conn.host,
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password,
     )
 
     tmpfile = tempfile.mkstemp()[1]
@@ -90,8 +95,9 @@ def is_service_alive():
 
 @task
 def is_minio_alive():
+    conn = BaseHook.get_connection("minio")
     try:
-        response = httpx.get("http://3.120.129.140:9000/minio/health/live")
+        response = httpx.get(f"{conn.host}/minio/health/live")
         if response.status_code != 200:
             raise AirflowFailException("MinIO is not alive.")
     except httpx.ConnectError:
@@ -107,16 +113,10 @@ def is_minio_alive():
     tags=["weather", "devops", "telekom"],
     catchup=False,
 )
-def main(
-    query=Param(
-        type="string",
-        default="kosice,sk",
-        title="Query",
-        description="Name of the city to get weather info about",
-    ),
-):
+def main(query: str = "kosice,sk"):
     # is_service_alive | scrape_data | process_data | publish_data
-    data = [is_minio_alive(), is_service_alive()] >> scrape_data("kosice,sk")
+
+    data = [is_minio_alive(), is_service_alive()] >> scrape_data(query)
     processed_data = process_data(data)
     publish_data(processed_data)
 

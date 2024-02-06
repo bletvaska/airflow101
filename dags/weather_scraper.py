@@ -1,4 +1,5 @@
 import logging
+import tempfile
 
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
@@ -53,13 +54,15 @@ def publish_data(line: str):
         aws_access_key_id="admin",
         aws_secret_access_key="jahodka123",
     )
-    bucket = minio.Bucket('datasets')
-    bucket.download_file('weather.csv', '/tmp/weather.csv')
 
-    with open("/tmp/weather.csv", "a") as dataset:
+    path = tempfile.mkstemp()[1]
+    bucket = minio.Bucket('datasets')
+    bucket.download_file('weather.csv', path)
+
+    with open(path, "a") as dataset:
         print(line, file=dataset)
 
-    bucket.upload_file('/tmp/weather.csv', 'weather.csv')
+    bucket.upload_file(path, 'weather.csv')
 
 
 @task

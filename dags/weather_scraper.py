@@ -9,6 +9,7 @@ from airflow.exceptions import AirflowFailException
 import httpx
 from pendulum import datetime
 import boto3
+import botocore
 
 logger = logging.getLogger(__file__)
 
@@ -56,16 +57,21 @@ def publish_data(line: str):
         aws_secret_access_key="jahodka123",
     )
 
-    path = Path(tempfile.mkstemp()[1])
+    DATASET = 'weather.csvx'
+    tmpfile = tempfile.mkstemp()[1]
+    path = Path(tmpfile)
     logger.info(f'Downloading dataset to file {path}')
 
     bucket = minio.Bucket('datasets')
-    bucket.download_file('weather.csv', path)
+    try:
+        bucket.download_file(DATASET, path)
+    except botocore.exceptions.ClientError:
+        logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
 
     with open(path, "a") as dataset:
         print(line, file=dataset)
 
-    bucket.upload_file(path, 'weather.csv')
+    bucket.upload_file(path, DATASET)
     path.unlink()
 
 

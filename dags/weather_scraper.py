@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 import tempfile
 
 from airflow.decorators import dag, task
@@ -55,7 +56,9 @@ def publish_data(line: str):
         aws_secret_access_key="jahodka123",
     )
 
-    path = tempfile.mkstemp()[1]
+    path = Path(tempfile.mkstemp()[1])
+    logger.info(f'Downloading dataset to file {path}')
+
     bucket = minio.Bucket('datasets')
     bucket.download_file('weather.csv', path)
 
@@ -63,6 +66,7 @@ def publish_data(line: str):
         print(line, file=dataset)
 
     bucket.upload_file(path, 'weather.csv')
+    path.unlink()
 
 
 @task

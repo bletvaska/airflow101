@@ -6,6 +6,7 @@ from airflow.models.param import Param
 from airflow.exceptions import AirflowFailException
 import httpx
 from pendulum import datetime
+import boto3
 
 logger = logging.getLogger(__file__)
 
@@ -46,8 +47,19 @@ def process_data(data: dict) -> str:
 def publish_data(line: str):
     logger.info("Publishing data")
 
-    with open("/home/ubuntu/dataset.csv", "a") as dataset:
+    minio = boto3.resource(
+        "s3",
+        endpoint_url="http://localhost:9000",
+        aws_access_key_id="admin",
+        aws_secret_access_key="jahodka123",
+    )
+    bucket = minio.Bucket('datasets')
+    bucket.download_file('weather.csv', '/tmp/weather.csv')
+
+    with open("/tmp/weather.csv", "a") as dataset:
         print(line, file=dataset)
+
+    bucket.upload_file('/tmp/weather.csv', 'weather.csv')
 
 
 @task
@@ -91,7 +103,7 @@ def main(
     ),
 ):
     # is_service_alive | scrape_data | process_data | publish_data
-    data = [ is_minio_alive(), is_service_alive() ] >> scrape_data("kosice,sk")
+    data = [is_minio_alive(), is_service_alive()] >> scrape_data("kosice,sk")
     processed_data = process_data(data)
     publish_data(processed_data)
 

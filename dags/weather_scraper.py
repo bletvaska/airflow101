@@ -63,6 +63,17 @@ def is_service_alive():
         raise AirflowFailException("Invalid host name.")
 
 
+@task
+def is_minio_alive():
+    try:
+        response = httpx.get('http://3.120.129.140:9000/minio/health/live')
+        if response.status_code != 200:
+            raise AirflowFailException("MinIO is not alive.")
+    except httpx.ConnectError:
+        logger.error("Connection error")
+        raise AirflowFailException("Connection error")
+
+
 @dag(
     "weather_scraper",
     description="Scrapes weather from openweathermap.org",
@@ -80,6 +91,7 @@ def main(
     ),
 ):
     # is_service_alive | scrape_data | process_data | publish_data
+    is_minio_alive()
     data = is_service_alive() >> scrape_data("kosice,sk")
     processed_data = process_data(data)
     publish_data(processed_data)

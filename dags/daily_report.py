@@ -5,6 +5,7 @@ import tempfile
 import pendulum
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
+from airflow.exceptions import AirflowFailException
 import boto3
 import botocore
 import pandas as pd
@@ -34,38 +35,46 @@ def extract_yesterday_data() -> str:
     bucket = minio.Bucket("datasets")
     try:
         bucket.download_file(DATASET, path)
+
+        df = pd.read_csv(
+            path,
+            names=[
+                "dt",
+                "city",
+                "country",
+                "temp",
+                "hum",
+                "press",
+                "sunrise",
+                "sunset",
+                "wind_angle",
+                "wind_speed",
+            ],
+        )
+
+        # cleanup dataframe
+        df["dt"] = pd.to_datetime(df["dt"], unit="s")
+        df["sunrise"] = pd.to_datetime(df["sunrise"], unit="s")
+        df["sunset"] = pd.to_datetime(df["sunset"], unit="s")
+        df.drop_duplicates(inplace=True)
+
+        # filter yesterday data
+        filter_from_yesterday = df["dt"] >= pendulum.yesterday("utc").to_date_string()
+        filter_till_today = df["dt"] < pendulum.today("utc").to_date_string()
+        filter_yesterday = filter_from_yesterday & filter_till_today
+
+        result = df.loc[filter_yesterday, :]
+        return result.to_json()  # yesterday data
+
     except botocore.exceptions.ClientError:
-        logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
+        logger.error("Dataset doesn't exist in bucket.")
+        raise AirflowFailException("Dataset doesn't exist in bucket")
 
-    df = pd.read_csv(
-        path,
-        names=[
-            "dt",
-            "city",
-            "country",
-            "temp",
-            "hum",
-            "press",
-            "sunrise",
-            "sunset",
-            "wind_angle",
-            "wind_speed",
-        ],
-    )
+    finally:
+        if path.exists():
+            path.unlink()
 
-    # cleanup dataframe
-    df["dt"] = pd.to_datetime(df["dt"], unit="s")
-    df["sunrise"] = pd.to_datetime(df["sunrise"], unit="s")
-    df["sunset"] = pd.to_datetime(df["sunset"], unit="s")
-    df.drop_duplicates(inplace=True)
 
-    # filter yesterday data
-    filter_from_yesterday = df["dt"] >= pendulum.yesterday("utc").to_date_string()
-    filter_till_today = df["dt"] < pendulum.today("utc").to_date_string()
-    filter_yesterday = filter_from_yesterday & filter_till_today
-
-    result = df.loc[filter_yesterday, :]
-    return result.to_json()  # yesterday data
 
 
 @task

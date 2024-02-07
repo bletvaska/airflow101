@@ -40,23 +40,32 @@ def extract_yesterday_data():
     df = pd.read_csv(
         path,
         names=[
-            'dt', 'city', 'country', 'temp', 'hum', 'press', 'sunrise', 'sunset', 'wind_angle', 'wind_speed'
-        ]
+            "dt",
+            "city",
+            "country",
+            "temp",
+            "hum",
+            "press",
+            "sunrise",
+            "sunset",
+            "wind_angle",
+            "wind_speed",
+        ],
     )
 
     # cleanup dataframe
-    df['dt'] = pd.to_datetime(df['dt'], unit='s')
-    df['sunrise'] = pd.to_datetime(df['sunrise'], unit='s')
-    df['sunset'] = pd.to_datetime(df['sunset'], unit='s')
+    df["dt"] = pd.to_datetime(df["dt"], unit="s")
+    df["sunrise"] = pd.to_datetime(df["sunrise"], unit="s")
+    df["sunset"] = pd.to_datetime(df["sunset"], unit="s")
     df.drop_duplicates(inplace=True)
 
     # filter yesterday data
-    filter_from_yesterday = df['dt'] >= pendulum.yesterday('utc').to_date_string()
-    filter_till_today = df['dt'] < pendulum.today('utc').to_date_string()
+    filter_from_yesterday = df["dt"] >= pendulum.yesterday("utc").to_date_string()
+    filter_till_today = df["dt"] < pendulum.today("utc").to_date_string()
     filter_yesterday = filter_from_yesterday & filter_till_today
 
     result = df.loc[filter_yesterday, :]
-    return result # yesterday data
+    return result  # yesterday data
 
 
 @task

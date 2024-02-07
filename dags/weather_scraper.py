@@ -10,6 +10,8 @@ from pendulum import datetime
 import boto3
 import botocore
 
+from tasks import is_minio_alive
+
 logger = logging.getLogger(__file__)
 DATASET = "weather.csv"
 
@@ -90,18 +92,6 @@ def is_service_alive():
     except httpx.ConnectError:
         logger.error(f"Invalid hostname {connection.host}")
         raise AirflowFailException("Invalid host name.")
-
-
-@task
-def is_minio_alive():
-    conn = BaseHook.get_connection("minio")
-    try:
-        response = httpx.get(f"{conn.host}/minio/health/live")
-        if response.status_code != 200:
-            raise AirflowFailException("MinIO is not alive.")
-    except httpx.ConnectError:
-        logger.error("Connection error")
-        raise AirflowFailException("Connection error")
 
 
 @dag(

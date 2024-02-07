@@ -1,24 +1,12 @@
 import logging
 
-import httpx
 from pendulum import datetime
 from airflow.decorators import dag, task
-from airflow.hooks.base import BaseHook
-from airflow.exceptions import AirflowFailException
+
+from tasks import is_minio_alive
+
 
 logger = logging.getLogger(__file__)
-
-
-@task
-def is_minio_alive():
-    conn = BaseHook.get_connection("minio")
-    try:
-        response = httpx.get(f"{conn.host}/minio/health/live")
-        if response.status_code != 200:
-            raise AirflowFailException("MinIO is not alive.")
-    except httpx.ConnectError:
-        logger.error("Connection error")
-        raise AirflowFailException("Connection error")
 
 
 @task

@@ -17,7 +17,7 @@ DATASET = "weather.csv"
 
 
 @task
-def extract_yesterday_data():
+def extract_yesterday_data() -> str:
     # download dataset as dataframe
     conn = BaseHook.get_connection("minio")
     minio = boto3.resource(
@@ -65,11 +65,12 @@ def extract_yesterday_data():
     filter_yesterday = filter_from_yesterday & filter_till_today
 
     result = df.loc[filter_yesterday, :]
-    return result  # yesterday data
+    return result.to_json()  # yesterday data
 
 
 @task
-def create_report(data):
+def create_report(data: str):
+    print(data)
     pass
 
 

@@ -7,9 +7,9 @@ from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 import httpx
 from pendulum import datetime
-import boto3
 import botocore
 
+from helpers import get_minio
 from tasks import is_minio_alive
 
 logger = logging.getLogger(__file__)
@@ -56,13 +56,7 @@ def process_data(data: dict) -> str:
 def publish_data(line: str):
     logger.info("Publishing data")
 
-    conn = BaseHook.get_connection("minio")
-    minio = boto3.resource(
-        "s3",
-        endpoint_url=conn.host,
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
+    minio = get_minio()
 
     tmpfile = tempfile.mkstemp()[1]
     path = Path(tmpfile)

@@ -4,7 +4,6 @@ import tempfile
 
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
-from airflow.models.param import Param
 from airflow.exceptions import AirflowFailException
 import httpx
 from pendulum import datetime

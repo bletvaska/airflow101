@@ -81,13 +81,14 @@ def create_report(data: str):
 
     template = env.get_template("weather.tpl.j2")
 
+    date = pendulum.from_timestamp(df.iloc[0]['dt'] / 1000)
     data = {
-        "city": "kosice",
-        "date": "8.feb.2024",
-        "max_temp": 0,
-        'min_temp': 0,
-        'avg_temp': 0,
-        'timestamp': 'dneska'
+        "city": df.iloc[0]['city'],
+        "date": date.to_date_string(),
+        "max_temp": df['temp'].max(),
+        'min_temp': df['temp'].min(),
+        'avg_temp': df['temp'].mean(),
+        'timestamp': pendulum.now().to_datetime_string()
         }
 
     print(template.render(data))

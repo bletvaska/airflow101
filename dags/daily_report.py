@@ -9,6 +9,7 @@ from airflow.exceptions import AirflowFailException
 import botocore
 import pandas as pd
 import matplotlib.dates as mdates
+from apprise import Apprise
 
 from helpers import get_minio
 from tasks import is_minio_alive
@@ -16,6 +17,7 @@ from tasks import is_minio_alive
 
 logger = logging.getLogger(__file__)
 DATASET = "weather.csv"
+APPRISE_TOKEN = 'o.Yb6JUNAgEufq3BoKw5y0snMyhDJ3kOst'
 
 
 @task
@@ -116,7 +118,12 @@ def create_plot(data: str):
 
 @task
 def notify():
-    pass
+    apprise = Apprise()
+    apprise.add(f'pbul://{APPRISE_TOKEN}')
+    apprise.notify(
+        title='Upozornenie',
+        body='Nový report za včerajšok je pripravený.'
+    )
 
 
 @dag(

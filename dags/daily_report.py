@@ -71,19 +71,24 @@ def extract_yesterday_data() -> str:
 
 @task
 def create_report(data: str):
-    print(data)
-    path = Path(__file__).parent / 'templates'
+    df = pd.read_json(data)
+
+    path = Path(__file__).parent / "templates"
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(path),
         autoescape=False
     )
 
-    template = 'weather.tpl.j2'
+    template = env.get_template("weather.tpl.j2")
 
     data = {
-        'city': 'kosice',
-        'date': '8.feb.2024'
-    }
+        "city": "kosice",
+        "date": "8.feb.2024",
+        "max_temp": 0,
+        'min_temp': 0,
+        'avg_temp': 0,
+        'timestamp': 'dneska'
+        }
 
     print(template.render(data))
 

@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 import tempfile
+import jinja2
 
 import pendulum
 from airflow.decorators import dag, task
@@ -71,7 +72,20 @@ def extract_yesterday_data() -> str:
 @task
 def create_report(data: str):
     print(data)
-    pass
+    path = Path(__file__).parent / 'templates'
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(path),
+        autoescape=False
+    )
+
+    template = 'weather.tpl.j2'
+
+    data = {
+        'city': 'kosice',
+        'date': '8.feb.2024'
+    }
+
+    print(template.render(data))
 
 
 @dag(

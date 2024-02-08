@@ -58,7 +58,7 @@ def extract_yesterday_data() -> str:
         filter_yesterday = filter_from_yesterday & filter_till_today
 
         result = df.loc[filter_yesterday, :]
-        return result.to_json(date_format='iso')  # , date_unit='s')  # yesterday data
+        return result.to_json(date_format="iso")  # , date_unit='s')  # yesterday data
 
     except botocore.exceptions.ClientError:
         logger.error("Dataset doesn't exist in bucket.")
@@ -71,41 +71,42 @@ def extract_yesterday_data() -> str:
 
 @task
 def create_report(data: str):
-    df = pd.read_json(data, convert_dates=['dt', 'sunrise', 'sunset'])
+    df = pd.read_json(data, convert_dates=["dt", "sunrise", "sunset"])
 
     path = Path(__file__).parent / "templates"
-    env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(path),
-        autoescape=False
-    )
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(path), autoescape=False)
 
     template = env.get_template("weather.tpl.j2")
     # from IPython import embed; embed()
 
-    ts = pendulum.from_timestamp(df.iloc[0]['dt'].timestamp())
-    city = df.iloc[0]['city']
+    ts = pendulum.from_timestamp(df.iloc[0]["dt"].timestamp())
+    city = df.iloc[0]["city"]
     data = {
         "city": city,
         "date": ts.to_date_string(),
-        "max_temp": df['temp'].max(),
-        'min_temp': df['temp'].min(),
-        'avg_temp': df['temp'].mean(),
-        'timestamp': pendulum.now('utc').to_datetime_string()
-        }
+        "max_temp": df["temp"].max(),
+        "min_temp": df["temp"].min(),
+        "avg_temp": df["temp"].mean(),
+        "timestamp": pendulum.now("utc").to_datetime_string(),
+    }
 
     # save to temporary file
     path = Path(tempfile.mkstemp()[1])
-    with open(path, 'w') as file:
+    with open(path, "w") as file:
         print(template.render(data), file=file)
 
     # upload to minio
     minio = get_minio()
-    bucket = minio.Bucket('reports')
-    bucket.upload_file(path, f'{city}.txt')
+    bucket = minio.Bucket("reports")
+    bucket.upload_file(path, f"{city}.txt")
 
     # cleanup
     path.unlink()
 
+
+@task
+def create_graph(data: str):
+    df = pd.read_json(data, convert_dates=["dt", "sunrise", "sunset"])
 
 
 @dag(
@@ -119,6 +120,7 @@ def create_report(data: str):
 def main():
     data = is_minio_alive() >> extract_yesterday_data()
     create_report(data)
+    create_graph(data)
 
 
 main()

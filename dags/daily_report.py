@@ -114,6 +114,11 @@ def create_plot(data: str):
     ax.figure.savefig('kosice.png')
 
 
+@task
+def notify():
+    pass
+
+
 @dag(
     "daily_report",
     description="Creates daily weather report.",
@@ -124,8 +129,7 @@ def create_plot(data: str):
 )
 def main():
     data = is_minio_alive() >> extract_yesterday_data()
-    create_report(data)
-    create_plot(data)
+    [ create_report(data), create_plot(data) ] >> notify()
 
 
 main()

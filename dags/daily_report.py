@@ -58,7 +58,7 @@ def extract_yesterday_data() -> str:
         filter_yesterday = filter_from_yesterday & filter_till_today
 
         result = df.loc[filter_yesterday, :]
-        return result.to_json()  # yesterday data
+        return result.to_json(date_format='iso', date_unit='s')  # yesterday data
 
     except botocore.exceptions.ClientError:
         logger.error("Dataset doesn't exist in bucket.")
@@ -71,7 +71,7 @@ def extract_yesterday_data() -> str:
 
 @task
 def create_report(data: str):
-    df = pd.read_json(data)
+    df = pd.read_json(data, convert_dates=['dt', 'sunrise', 'sunset'])
 
     path = Path(__file__).parent / "templates"
     env = jinja2.Environment(
@@ -80,11 +80,12 @@ def create_report(data: str):
     )
 
     template = env.get_template("weather.tpl.j2")
+    # from IPython import embed; embed()
 
-    date = pendulum.from_timestamp(df.iloc[0]['dt'] / 1000)
+    ts = pendulum.from_timestamp(df.iloc[0]['dt'].timestamp())
     data = {
         "city": df.iloc[0]['city'],
-        "date": date.to_date_string(),
+        "date": ts.to_date_string(),
         "max_temp": df['temp'].max(),
         'min_temp': df['temp'].min(),
         'avg_temp': df['temp'].mean(),

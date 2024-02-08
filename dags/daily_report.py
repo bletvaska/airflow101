@@ -58,7 +58,7 @@ def extract_yesterday_data() -> str:
         filter_yesterday = filter_from_yesterday & filter_till_today
 
         result = df.loc[filter_yesterday, :]
-        return result.to_json(date_format='iso', date_unit='s')  # yesterday data
+        return result.to_json(date_format='iso')  # , date_unit='s')  # yesterday data
 
     except botocore.exceptions.ClientError:
         logger.error("Dataset doesn't exist in bucket.")
@@ -83,16 +83,29 @@ def create_report(data: str):
     # from IPython import embed; embed()
 
     ts = pendulum.from_timestamp(df.iloc[0]['dt'].timestamp())
+    city = df.iloc[0]['city']
     data = {
-        "city": df.iloc[0]['city'],
+        "city": city,
         "date": ts.to_date_string(),
         "max_temp": df['temp'].max(),
         'min_temp': df['temp'].min(),
         'avg_temp': df['temp'].mean(),
-        'timestamp': pendulum.now().to_datetime_string()
+        'timestamp': pendulum.now('utc').to_datetime_string()
         }
 
-    print(template.render(data))
+    # save to temporary file
+    path = Path(tempfile.mkstemp()[1])
+    with open(path, 'w') as file:
+        print(template.render(data), file=file)
+
+    # upload to minio
+    minio = get_minio()
+    bucket = minio.Bucket('reports')
+    bucket.upload_file(path, f'{city}.txt')
+
+    # cleanup
+    path.unlink()
+
 
 
 @dag(

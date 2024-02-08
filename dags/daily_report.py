@@ -17,7 +17,7 @@ from tasks import is_minio_alive
 
 logger = logging.getLogger(__file__)
 DATASET = "weather.csv"
-APPRISE_TOKEN = 'o.Yb6JUNAgEufq3BoKw5y0snMyhDJ3kOst'
+APPRISE_TOKEN = "o.Yb6JUNAgEufq3BoKw5y0snMyhDJ3kOst"
 
 
 @task
@@ -111,19 +111,37 @@ def create_report(data: str):
 def create_plot(data: str):
     df = pd.read_json(data, convert_dates=["dt", "sunrise", "sunset"])
 
-    ax = df.plot(x='dt', y='temp', title='Teplota v meste Košice, 7.2.2024')
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H'))
-    ax.figure.savefig('kosice.png')
+    city = df.iloc[0]["city"]
+    date = pendulum.from_timestamp(df.iloc[0]["dt"].timestamp()).to_date_string()
+
+    ax = df.plot(
+        x="dt",
+        xlabel="čas (hod)",
+        y="temp",
+        ylabel="teplota (°C)",
+        title=f"Teplota v meste {city}, {date}",
+    )
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
+
+    # save to temporary file
+    path = Path(tempfile.mkstemp(suffix=".png")[1])
+    logger.info(f"Saving temporary file to {path}.")
+    ax.figure.savefig(path)
+
+    # upload to minio
+    minio = get_minio()
+    bucket = minio.Bucket("reports")
+    bucket.upload_file(path, f"{city.lower()}.png")
+
+    # cleanup
+    path.unlink()
 
 
 @task
 def notify():
     apprise = Apprise()
-    apprise.add(f'pbul://{APPRISE_TOKEN}')
-    apprise.notify(
-        title='Upozornenie',
-        body='Nový report za včerajšok je pripravený.'
-    )
+    apprise.add(f"pbul://{APPRISE_TOKEN}")
+    apprise.notify(title="Upozornenie", body="Nový report za včerajšok je pripravený.")
 
 
 @dag(
@@ -136,7 +154,7 @@ def notify():
 )
 def main():
     data = is_minio_alive() >> extract_yesterday_data()
-    [ create_report(data), create_plot(data) ] >> notify()
+    [create_report(data), create_plot(data)] >> notify()
 
 
 main()

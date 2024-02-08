@@ -106,10 +106,10 @@ def create_report(data: str):
 
 
 @task
-def create_graph(data: str):
+def create_plot(data: str):
     df = pd.read_json(data, convert_dates=["dt", "sunrise", "sunset"])
 
-    ax = df.plot(x='dt', y='temp', title='Teplota v meste Košice, 8.2.2024')
+    ax = df.plot(x='dt', y='temp', title='Teplota v meste Košice, 7.2.2024')
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H'))
     ax.figure.savefig('kosice.png')
 
@@ -125,7 +125,7 @@ def create_graph(data: str):
 def main():
     data = is_minio_alive() >> extract_yesterday_data()
     create_report(data)
-    create_graph(data)
+    create_plot(data)
 
 
 main()

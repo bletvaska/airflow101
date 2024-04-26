@@ -13,6 +13,7 @@ Pre absolvovanie kurzu je potrené poznať minimálne základy jazyka Python. Zn
 
 * základy práce s [Apache Airflow](https://airflow.apache.org/)
 * tvorba HTTP dopytov pomocou knižníc [requests](https://requests.readthedocs.io/en/latest/)/[httpx](https://www.python-httpx.org/)
+* spúšťanie príkazov operačného systému pomocou modulu [sh](https://sh.readthedocs.io/en/latest/)
 * knižnica [Boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html) na komunikáciu so službami typu object storage [S3](https://aws.amazon.com/s3/)/[MinIO](https://min.io/)
 * modul [pathlib](https://docs.python.org/3/library/pathlib.html)
 * spracovanie dát uložených vo formáte CSV pomocou knižnice [Pandas](https://pandas.pydata.org/)

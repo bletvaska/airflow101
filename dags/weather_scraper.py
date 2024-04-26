@@ -57,6 +57,11 @@ def publish_data(line):
 
     with open("dataset.csv", "a") as file:
         print(line, file=file)
+        
+        
+@task
+def validate_data(data: dict):
+    return data
 
 
 @dag(
@@ -68,8 +73,9 @@ def publish_data(line):
     catchup=False,
 )
 def main(query: str = "kosice"):
-    data = scrape_data(query)
-    line = process_data(data)
+    measurement = scrape_data(query)
+    valid_data = validate_data(measurement)
+    line = process_data(valid_data)
     publish_data(line)
 
 

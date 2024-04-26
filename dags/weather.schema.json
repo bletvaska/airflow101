@@ -4,65 +4,65 @@
     "description": "Schema for training purposes only.",
     "type": "object",
     "required": [
-      "main",
-      "wind",
-      "dt",
-      "name"
+        "main",
+        "wind",
+        "dt",
+        "name"
     ],
     "properties": {
-      "name": {
-        "description": "Name of the city",
-        "type": "string"
-      },
-      "dt": {
-        "description": "Measurement Datetime",
-        "type": "integer"
-      },
-      "wind": {
-        "description": "Information about the wind",
-        "type": "object",
-        "required": [
-          "speed",
-          "deg"
-        ],
-        "properties": {
-          "speed": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 400
-          },
-          "deg": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 360
-          }
+        "name": {
+            "description": "Name of the city",
+            "type": "string"
+        },
+        "dt": {
+            "description": "Measurement Datetime",
+            "type": "integer"
+        },
+        "wind": {
+            "description": "Information about the wind",
+            "type": "object",
+            "required": [
+                "speed",
+                "deg"
+            ],
+            "properties": {
+                "speed": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 400
+                },
+                "deg": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 360
+                }
+            }
+        },
+        "main": {
+            "description": "Main measurements",
+            "type": "object",
+            "required": [
+                "temp",
+                "humidity",
+                "pressure"
+            ],
+            "properties": {
+                "temp": {
+                    "type": "number",
+                    "minimum": -273,
+                    "maximum": 60
+                },
+                "pressure": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1500
+                },
+                "humidity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                }
+            }
         }
-      },
-      "main": {
-        "description": "Main measurements",
-        "type": "object",
-        "required": [
-          "temp",
-          "humidity",
-          "pressure"
-        ],
-        "properties": {
-          "temp": {
-            "type": "number",
-            "minimum": -273,
-            "maximum": 60
-          },
-          "pressure": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 1500
-          },
-          "humidity": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 100
-          }
-        }
-      }
     }
-  }
+}

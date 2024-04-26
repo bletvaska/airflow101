@@ -2,23 +2,22 @@ import sys
 from http import HTTPStatus
 
 from airflow.decorators import dag, task
+from airflow.hooks.base import BaseHook
 import httpx
 from pendulum import datetime
 
-#query: str = 'kosice', appid: str = '9e547051a2a00f2bf3e17a160063002d', units: str = 'metrics'
-query = 'kosice'
-appid = '9e547051a2a00f2bf3e17a160063002d'
-units = 'metrics'
 
 @task
-def scrape_data(query, appid, units):
+def scrape_data(query):
     """
     Scrapes the data from openweathermap.org
     """
     print(">> Scraping Data")
 
-    url = "https://api.openweathermap.org/data/2.5/weather"
-    params = {"q": query, "appid": appid, "units": units}
+    conn = BaseHook.get_connection("openweathermap")
+
+    url = f"{conn.schema}://{conn.host}/data/2.5/weather"
+    params = {"q": query, "appid": conn.password, "units": 'metric'}
     response = httpx.get(url, params=params)
 
     if response.status_code == HTTPStatus.NOT_FOUND:
@@ -68,8 +67,8 @@ def publish_data(line):
     tags=["weather", "devops", "t-sys", "tuke"],
     catchup=False,
 )
-def main():
-    data = scrape_data(query, appid, units)
+def main(query: str = "kosice"):
+    data = scrape_data(query)
     line = process_data(data)
     publish_data(line)
 

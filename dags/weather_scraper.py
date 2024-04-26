@@ -5,6 +5,10 @@ from airflow.decorators import dag
 import httpx
 from pendulum import datetime
 
+#query: str = 'kosice', appid: str = None, units: str = 'metrics'
+query = 'kosice'
+appid = '9e547051a2a00f2bf3e17a160063002d'
+units = 'metrics'
 
 def scrape_data(query, appid, units):
     """
@@ -61,7 +65,7 @@ def publish_data(line):
     tags=["weather", "devops", "t-sys", "tuke"],
     catchup=False,
 )
-def main(query: str, appid: str, units: str):
+def main():
     data = scrape_data(query, appid, units)
     line = process_data(data)
     publish_data(line)

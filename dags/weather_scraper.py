@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import sys
 from http import HTTPStatus
 
@@ -56,14 +57,17 @@ def publish_data(line):
     Publish/persist the data to CSV file
     """
     print(">> Publishing Data")
+    path = Path(__file__).parent / 'dataset.csv'
 
-    with open("dataset.csv", "a") as file:
+    with open(path, "a") as file:
         print(line, file=file)
         
         
 @task
 def validate_data(data: dict):
-    with open('weather.schema.json', 'r') as file:
+    path = Path(__file__).parent / 'weather.schema.json'
+    
+    with open(path, 'r') as file:
         schema = json.load(file)
         jsonschema.validate(data, schema)
         return data

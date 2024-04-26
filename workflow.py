@@ -76,4 +76,5 @@ def main(query: str, appid: str, units: str):
 
 
 if __name__ == "__main__":
-    main()
+    print(__file__)
+    # main()

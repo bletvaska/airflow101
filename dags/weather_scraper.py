@@ -1,15 +1,16 @@
 import sys
 from http import HTTPStatus
 
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 import httpx
 from pendulum import datetime
 
-#query: str = 'kosice', appid: str = None, units: str = 'metrics'
+#query: str = 'kosice', appid: str = '9e547051a2a00f2bf3e17a160063002d', units: str = 'metrics'
 query = 'kosice'
 appid = '9e547051a2a00f2bf3e17a160063002d'
 units = 'metrics'
 
+@task
 def scrape_data(query, appid, units):
     """
     Scrapes the data from openweathermap.org
@@ -30,6 +31,7 @@ def scrape_data(query, appid, units):
     return data
 
 
+@task
 def process_data(data):
     """
     Process the passed data
@@ -47,6 +49,7 @@ def process_data(data):
     )
 
 
+@task
 def publish_data(line):
     """
     Publish/persist the data to CSV file

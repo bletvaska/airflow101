@@ -1,3 +1,4 @@
+import json
 import sys
 from http import HTTPStatus
 
@@ -5,6 +6,7 @@ from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
 import httpx
 from pendulum import datetime
+import jsonschema
 
 
 @task
@@ -61,7 +63,10 @@ def publish_data(line):
         
 @task
 def validate_data(data: dict):
-    return data
+    with open('weather.schema.json', 'r') as file:
+        schema = json.load(file)
+        jsonschema.validate(data, schema)
+        return data
 
 
 @dag(

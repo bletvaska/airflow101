@@ -1,59 +1,79 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-
-import click
 import httpx
+import click
+import sys
+from http import HTTPStatus
 
 
-def scrape_data(query: str, units: str, appid: str) -> dict:
-    print('>> Scraping data')
+def scrape_data(query, appid, units):
+    """
+    Scrapes the data from openweathermap.org
+    """
+    print(">> Scraping Data")
 
-    url = 'http://api.openweathermap.org/data/2.5/weather'
-    params = {
-        'q': query,
-        'units': units,
-        'appid': appid
-    }
-
+    url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {"q": query, "appid": appid, "units": units}
     response = httpx.get(url, params=params)
-    return response.json()
+
+    if response.status_code == HTTPStatus.NOT_FOUND:
+        sys.exit("Error: City not found.")
+
+    if response.status_code == HTTPStatus.UNAUTHORIZED:
+        sys.exit("Error: Invalid API Key.")
+
+    data = response.json()
+    return data
 
 
-def process_data(data: dict) -> str:
-    print('>> Processing data')
+def process_data(data):
+    """
+    Process the passed data
+    """
+    print(">> Processing Data")
 
-    line = '{},{},{},{},{},{},{},{},{},{}'.format(
-        data['dt'],
-        data['name'],
-        data['sys']['country'],
-        data['main']['temp'],
-        data['main']['humidity'],
-        data['main']['pressure'],
-        data['sys']['sunrise'],
-        data['sys']['sunset'],
-        data['wind']['deg'],
-        data['wind']['speed'],
+    return "{},{},{},{},{},{},{}".format(
+        data["dt"],
+        data["name"],
+        data["main"]["temp"],
+        data["main"]["pressure"],
+        data["main"]["humidity"],
+        data["wind"]["speed"],
+        data["wind"]["deg"],
     )
 
-    return line
+
+def publish_data(line):
+    """
+    Publish/persist the data to CSV file
+    """
+    print(">> Publishing Data")
+
+    with open("dataset.csv", "a") as file:
+        print(line, file=file)
 
 
-def publish_data(line: str):
-    print('>> Publishing data')
+# run the workflow
+# scrape_data | process_data | publish_data
+@click.command(help="Download current weather condition in CSV format.")
+@click.option(
+    "--appid",
+    help="Unique API key for openweathermap.org",
+    default=None,
+    envvar="APPID",
+)
+@click.option(
+    "--units",
+    help="Unit of measurement.",
+    type=click.Choice(["metric", "standard", "imperial"]),
+    default="metric",
+)
+@click.argument("query")
+def main(query: str, appid: str, units: str):
+    data = scrape_data(query, appid, units)
+    line = process_data(data)
+    publish_data(line)
 
-    with open('/home/ubuntu/dataset.csv', 'a') as dataset:
-        print(line, file=dataset)
 
-
-@click.command(help='Download current weather condition in CSV format.')
-@click.argument('query')
-@click.option('--units', type=click.Choice(['metric', 'standard', 'imperial']), default='metric', help='Unit of measurement')
-@click.option('--appid', default=None, help='API keZy for openweathermap.org service.', envvar='APPID')
-def main(query: str, units: str, appid: str):
-    # print(query, units, appid)
-    data = scrape_data(query, units, appid)
-    processed_data = process_data(data)
-    publish_data(processed_data)
-
-
-main()
+if __name__ == "__main__":
+    main()

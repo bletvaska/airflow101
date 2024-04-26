@@ -30,7 +30,7 @@ def scrape_data(query):
     response = httpx.get(url, params=params)
 
     if response.status_code == HTTPStatus.NOT_FOUND:
-        raise AirflowFailException('City not found.')
+        raise AirflowFailException("City not found.")
         # sys.exit("Error: City not found.")
 
     if response.status_code == HTTPStatus.UNAUTHORIZED:
@@ -64,7 +64,7 @@ def publish_data(line):
     Publish/persist the data to CSV file
     """
     logger.info(">> Publishing Data")
-    
+
     path = Path(__file__).parent / "dataset.csv"
 
     with open(path, "a") as file:
@@ -79,11 +79,12 @@ def validate_data(data: dict):
         schema = json.load(file)
         jsonschema.validate(data, schema)
         return data
-    
+
+
 @task
 def healthcheck_weather():
-    conn = BaseHook.get_connection('openweathermap')
-    ping(conn.host, '-c', '1', _timeout=3)
+    conn = BaseHook.get_connection("openweathermap")
+    ping(conn.host, "-c", "1", _timeout=3)
 
 
 @dag(
@@ -99,6 +100,6 @@ def main(query: str = "kosice"):
     valid_data = validate_data(measurement)
     line = process_data(valid_data)
     publish_data(line)
-    
+
 
 main()

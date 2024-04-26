@@ -25,6 +25,7 @@ services:
       - POSTGRESQL_PASSWORD=secret
       - POSTGRESQL_DATABASE=airflow
       - POSTGRESQL_USERNAME=airflow_user
+      - TZ=Europe/Bratislava
 
 
 volumes:

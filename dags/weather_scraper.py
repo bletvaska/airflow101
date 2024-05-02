@@ -85,6 +85,14 @@ def validate_data(data: dict):
 def healthcheck_weather():
     conn = BaseHook.get_connection("openweathermap")
     ping(conn.host, "-c", "1", _timeout=3)
+    
+    
+@task
+def healthcheck_minio():
+    url = 'http://localhost:9000/minio/health/live'
+    response = httpx.get(url)
+    if response.status_code != HTTPStatus.OK:
+        raise AirflowFailException('MinIO service is unhealthy.')
 
 
 @dag(
@@ -93,10 +101,14 @@ def healthcheck_weather():
     schedule="*/20 * * * *",
     start_date=datetime(2024, 4, 1),
     tags=["weather", "devops", "t-sys", "tuke"],
-    catchup=False,
+    catchup=False
 )
 def main(query: str = "kosice"):
-    measurement = healthcheck_weather() >> scrape_data(query)
+    
+    measurement = [
+        healthcheck_minio(),
+        healthcheck_weather()
+    ] >> scrape_data(query)
     valid_data = validate_data(measurement)
     line = process_data(valid_data)
     publish_data(line)

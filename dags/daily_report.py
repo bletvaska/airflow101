@@ -1,7 +1,11 @@
+import logging
 from pendulum import datetime
 from airflow.decorators import dag, task
 
 from tasks import healthcheck_minio
+
+
+logger = logging.getLogger(__name__)
 
 
 @task

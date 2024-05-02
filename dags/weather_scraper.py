@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 from http import HTTPStatus
 import logging
+import tempfile
 
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
@@ -75,17 +76,23 @@ def publish_data(line):
     
     bucket = minio.Bucket('datasets')
     
-    path = Path(__file__).parent / "dataset.csv"
-    
+    # create temporary file
+    path = Path(tempfile.mkstemp()[1])
+
+    # download dataset    
     try:
         bucket.download_file('dataset.csv', path)
     except ClientError:
         logger.warning('Dataset not found. Possibly first run.')
 
+    # append measurement
     with open(path, "a") as file:
         print(line, file=file)
         
+    # upload dataset
     bucket.upload_file(path, 'dataset.csv')
+    
+    # remove temporary file
     path.unlink(True)
 
 

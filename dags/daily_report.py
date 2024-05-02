@@ -1,19 +1,7 @@
-from http import HTTPStatus
-
 from pendulum import datetime
 from airflow.decorators import dag, task
-import httpx
-from airflow.hooks.base import BaseHook
-from airflow.exceptions import AirflowFailException
 
-
-@task
-def healthcheck_minio():
-    conn = BaseHook.get_connection("minio")
-    url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
-    response = httpx.get(url)
-    if response.status_code != HTTPStatus.OK:
-        raise AirflowFailException("MinIO service is unhealthy.")
+from tasks import healthcheck_minio
 
 
 @task

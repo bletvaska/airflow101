@@ -15,6 +15,8 @@ from sh import ping
 import boto3
 from botocore.exceptions import ClientError
 
+from tasks import healthcheck_minio
+
 
 logger = logging.getLogger(__name__)
 
@@ -111,15 +113,6 @@ def healthcheck_weather():
     conn = BaseHook.get_connection("openweathermap")
     ping(conn.host, "-c", "1", _timeout=3)
     
-    
-@task
-def healthcheck_minio():
-    conn = BaseHook.get_connection('minio')
-    url = f'{conn.schema}://{conn.host}:{conn.port}/minio/health/live'
-    response = httpx.get(url)
-    if response.status_code != HTTPStatus.OK:
-        raise AirflowFailException('MinIO service is unhealthy.')
-
 
 @dag(
     "weather_scraper",

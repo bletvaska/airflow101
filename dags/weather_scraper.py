@@ -11,6 +11,8 @@ import httpx
 from pendulum import datetime
 import jsonschema
 from sh import ping
+import boto3
+from botocore.exceptions import ClientError
 
 
 logger = logging.getLogger(__name__)
@@ -63,12 +65,28 @@ def publish_data(line):
     """
     Publish/persist the data to CSV file
     """
-    logger.info(">> Publishing Data")
-
+    # minio client
+    conn = BaseHook.get_connection('minio')
+    minio = boto3.resource('s3',
+        endpoint_url=f'{conn.schema}://{conn.host}:{conn.port}',
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password
+    )
+    
+    bucket = minio.Bucket('datasets')
+    
     path = Path(__file__).parent / "dataset.csv"
+    
+    try:
+        bucket.download_file('dataset.csv', path)
+    except ClientError:
+        logger.warning('Dataset not found. Possibly first run.')
 
     with open(path, "a") as file:
         print(line, file=file)
+        
+    bucket.upload_file(path, 'dataset.csv')
+    path.unlink(True)
 
 
 @task

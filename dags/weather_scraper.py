@@ -89,7 +89,8 @@ def healthcheck_weather():
     
 @task
 def healthcheck_minio():
-    url = 'http://localhost:9000/minio/health/live'
+    conn = BaseHook.get_connection('minio')
+    url = f'{conn.schema}://{conn.host}:{conn.port}/minio/health/live'
     response = httpx.get(url)
     if response.status_code != HTTPStatus.OK:
         raise AirflowFailException('MinIO service is unhealthy.')

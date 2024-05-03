@@ -16,12 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 @task
-def create_report():
-    pass
+def create_report(data: str):
+    df = pd.read_json(data)
+    logger.info(df)
 
 
 @task
-def extract_yesterday_data():
+def extract_yesterday_data() -> str:
     minio = get_minio()
     bucket = minio.Bucket("datasets")
 
@@ -57,7 +58,7 @@ def extract_yesterday_data():
     # filter data
     df = df.loc[ filter_yesterday, : ]
     
-    logger.info(df)
+    return df.to_json(date_format="iso")
 
 
 @dag(
@@ -69,7 +70,8 @@ def extract_yesterday_data():
     catchup=False,
 )
 def main():
-    healthcheck_minio() >> extract_yesterday_data() >> create_report()
+    data = healthcheck_minio() >> extract_yesterday_data()
+    create_report(data)
 
 
 main()

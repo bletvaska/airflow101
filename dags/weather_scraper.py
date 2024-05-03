@@ -12,9 +12,9 @@ import httpx
 from pendulum import datetime
 import jsonschema
 from sh import ping
-import boto3
 from botocore.exceptions import ClientError
 
+from helpers import get_minio
 from tasks import healthcheck_minio
 
 
@@ -68,14 +68,7 @@ def publish_data(line):
     """
     Publish/persist the data to CSV file
     """
-    # minio client
-    conn = BaseHook.get_connection('minio')
-    minio = boto3.resource('s3',
-        endpoint_url=f'{conn.schema}://{conn.host}:{conn.port}',
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password
-    )
-    
+    minio = get_minio()
     bucket = minio.Bucket('datasets')
     
     # create temporary file

@@ -3,13 +3,12 @@ from pathlib import Path
 import tempfile
 from pendulum import datetime
 from airflow.decorators import dag, task
-from airflow.hooks.base import BaseHook
-import boto3
 from botocore.exceptions import ClientError
 from airflow.exceptions import AirflowFailException
 import pandas as pd
 import pendulum
 
+from helpers import get_minio
 from tasks import healthcheck_minio
 
 
@@ -23,15 +22,7 @@ def create_report():
 
 @task
 def extract_yesterday_data():
-    # minio client
-    conn = BaseHook.get_connection("minio")
-    minio = boto3.resource(
-        "s3",
-        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
-
+    minio = get_minio()
     bucket = minio.Bucket("datasets")
 
     # create temporary file
@@ -41,7 +32,7 @@ def extract_yesterday_data():
     try:
         bucket.download_file("dataset.csv", path)
     except ClientError:
-        logger.warning("Dataset not found. Possibly first run.")
+        logger.warning("Dataset not found.")
         raise AirflowFailException("Dataset not found.")
 
     # read and clean dataset

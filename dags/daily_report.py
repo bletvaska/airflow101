@@ -64,13 +64,6 @@ def extract_yesterday_data(ti: TaskInstance) -> str:
     return df.to_json(date_format="iso")
 
 
-@task
-def debug(ti: TaskInstance):
-    logger.info(ti.execution_date)
-
-    # from IPython import embed; embed()
-
-
 @dag(
     "daily_report",
     description="daily_report for weather from openweathermap.org",
@@ -80,7 +73,7 @@ def debug(ti: TaskInstance):
     catchup=False,
 )
 def main():
-    data = debug() >> healthcheck_minio() >> extract_yesterday_data()
+    data = healthcheck_minio() >> extract_yesterday_data()
     create_report(data)
 
 

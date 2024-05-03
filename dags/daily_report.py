@@ -5,6 +5,7 @@ from pendulum import datetime
 from airflow.decorators import dag, task
 from botocore.exceptions import ClientError
 from airflow.exceptions import AirflowFailException
+from airflow.models import TaskInstance
 import pandas as pd
 import pendulum
 
@@ -60,6 +61,12 @@ def extract_yesterday_data() -> str:
     
     return df.to_json(date_format="iso")
 
+@task
+def debug(ti: TaskInstance):
+    logger.info(ti.execution_date)
+    
+    # from IPython import embed; embed()
+
 
 @dag(
     "daily_report",
@@ -70,7 +77,7 @@ def extract_yesterday_data() -> str:
     catchup=False,
 )
 def main():
-    data = healthcheck_minio() >> extract_yesterday_data()
+    data = debug() >> healthcheck_minio() >> extract_yesterday_data()
     create_report(data)
 
 

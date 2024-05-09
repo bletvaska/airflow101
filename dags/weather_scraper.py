@@ -46,7 +46,7 @@ def scrape_data(query):
 
 
 @task
-def process_data(data: dict) -> dict:
+def process_data(data: dict) -> str:
     """
     Process the passed data
     """

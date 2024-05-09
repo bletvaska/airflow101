@@ -18,7 +18,7 @@ from tasks import healthcheck_minio
 
 
 logger = logging.getLogger(__name__)
-TOKEN = "o.SRY5mFM5vrcpstAnlgbajdWine5znmqS"
+APPRISE_TOKEN = "o.SRY5mFM5vrcpstAnlgbajdWine5znmqS"
 
 
 @task
@@ -33,7 +33,7 @@ def notify(ti: TaskInstance):
     )
 
     # notify
-    apprise.add(f"pbul://{TOKEN}")
+    apprise.add(f"pbul://{APPRISE_TOKEN}")
     apprise.notify(title="Notification", body=f"Daily report for {exec_date} is ready.")
 
 

@@ -10,17 +10,30 @@ import pandas as pd
 import pendulum
 import jinja2
 import plotly.express as px
+from apprise import Apprise
 
 from helpers import get_minio
 from tasks import healthcheck_minio
 
 
 logger = logging.getLogger(__name__)
+TOKEN = "o.SRY5mFM5vrcpstAnlgbajdWine5znmqS"
 
 
 @task
 def notify(ti: TaskInstance):
-    pass
+    # get ready
+    apprise = Apprise()
+    exec_date = (
+        pendulum.instance(ti.execution_date)
+        .start_of("day")
+        .add(days=-1)
+        .to_data_string()
+    )
+
+    # notify
+    apprise.add(f"pbul://{TOKEN}")
+    apprise.notify(title="Notification", body=f"Daily report for {exec_date} is ready.")
 
 
 @task
@@ -152,10 +165,7 @@ def extract_yesterday_data(ti: TaskInstance) -> pd.DataFrame:
 )
 def main():
     data = healthcheck_minio() >> extract_yesterday_data()
-    [
-        create_report(data),
-        create_plot(data)
-    ] >> notify()
+    [create_report(data), create_plot(data)] >> notify()
 
 
 main()

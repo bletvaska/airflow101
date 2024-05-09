@@ -32,7 +32,7 @@ def create_report(df: pd.DataFrame, ti: TaskInstance):
     # from IPython import embed; embed()
     model = {
         "city": df["city"][0],
-        "date": exec_date.to_date_string(),
+        "date": exec_date.add(days=-1).to_date_string(),
         "max_temp": df["temp"].max(),
         "min_temp": df["temp"].min(),
         "avg_temp": df["temp"].mean(),
@@ -47,10 +47,18 @@ def create_report(df: pd.DataFrame, ti: TaskInstance):
     # get template
     template = env.get_template("weather.tpl.j2")
 
-    print(template.render(model))
-    # tmp_path = Path(tempfile.mkstemp()[1])
-    # with open(tmp_path, 'w') as file:
-    #     print(template.render(model), file=file)
+    # create temporary file
+    tmp_path = Path(tempfile.mkstemp()[1])
+    with open(tmp_path, 'w') as file:
+        print(template.render(model), file=file)
+        
+    # upload to minio/s3
+    minio = get_minio()
+    bucket = minio.Bucket('reports')
+    bucket.upload_file(tmp_path, f'{exec_date.add(days=-1).to_date_string()}.txt')
+        
+    # cleanup
+    tmp_path.unlink(True)
 
 
 @task

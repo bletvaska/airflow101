@@ -28,7 +28,7 @@ def notify(ti: TaskInstance):
         pendulum.instance(ti.execution_date)
         .start_of("day")
         .add(days=-1)
-        .to_data_string()
+        .to_date_string()
     )
 
     # notify

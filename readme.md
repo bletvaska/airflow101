@@ -42,8 +42,8 @@ graph LR
     E --> F[publish dataset]
 
     G[health check minio] --> H[extract yesterdays data]
-    I --> J[create report]
-    I --> K[create plot]
-    J --> L[notify]
-    K --> L
+    H --> I[create report]
+    H --> J[create plot]
+    J --> K[notify]
+    I --> K
 ```

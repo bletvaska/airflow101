@@ -23,13 +23,14 @@ def create_plot(df: pd.DataFrame, ti: TaskInstance):
     # get ready
     exec_date = pendulum.instance(ti.execution_date).start_of("day")
     date = exec_date.add(days=-1).to_date_string()
+    df.index = range(0, len(df))
     
     # create figure
     fig = px.line(
         df,
         x="dt",
         y="temp",
-        title=f"Teplota v Košiciach zo dňa {date}.",
+        title=f"Teplota v meste {df['city'][0]} zo dňa {date}.",
         line_shape="spline",
         labels={"dt": "čas", "temp": "teplota"},
     )

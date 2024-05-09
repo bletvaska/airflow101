@@ -9,6 +9,7 @@ from airflow.models import TaskInstance
 import pandas as pd
 import pendulum
 import jinja2
+import plotly.express as px
 
 from helpers import get_minio
 from tasks import healthcheck_minio
@@ -18,17 +19,42 @@ logger = logging.getLogger(__name__)
 
 
 @task
-def create_report(df: pd.DataFrame, ti: TaskInstance):
-    # df = pd.read_json(data)
-    # logger.info(df)
-    # df.to_csv('/home/ubuntu/yesterday.csv')
+def create_plot(df: pd.DataFrame, ti: TaskInstance):
+    # get ready
+    exec_date = pendulum.instance(ti.execution_date).start_of("day")
+    date = exec_date.add(days=-1).to_date_string()
+    
+    # create figure
+    fig = px.line(
+        df,
+        x="dt",
+        y="temp",
+        title=f"Teplota v Košiciach zo dňa {date}.",
+        line_shape="spline",
+        labels={"dt": "čas", "temp": "teplota"},
+    )
+    
+    # save graph as temporary file
+    path = Path(tempfile.mkstemp()[1])
+    fig.write_image(path, format='png')
+    
+    # upload to s3/minio
+    minio = get_minio()
+    bucket = minio.Bucket("reports")
+    bucket.upload_file(path, f"{date}.png")
+    
+    # cleanup
+    path.unlink(True)
 
+
+@task
+def create_report(df: pd.DataFrame, ti: TaskInstance):
     # reset index
     df.index = range(0, len(df))
 
     # prepare model
     exec_date = pendulum.instance(ti.execution_date).start_of("day")
-    
+
     # from IPython import embed; embed()
     model = {
         "city": df["city"][0],
@@ -49,14 +75,14 @@ def create_report(df: pd.DataFrame, ti: TaskInstance):
 
     # create temporary file
     tmp_path = Path(tempfile.mkstemp()[1])
-    with open(tmp_path, 'w') as file:
+    with open(tmp_path, "w") as file:
         print(template.render(model), file=file)
-        
+
     # upload to minio/s3
     minio = get_minio()
-    bucket = minio.Bucket('reports')
-    bucket.upload_file(tmp_path, f'{exec_date.add(days=-1).to_date_string()}.txt')
-        
+    bucket = minio.Bucket("reports")
+    bucket.upload_file(tmp_path, f"{exec_date.add(days=-1).to_date_string()}.txt")
+
     # cleanup
     tmp_path.unlink(True)
 
@@ -106,6 +132,7 @@ def extract_yesterday_data(ti: TaskInstance) -> pd.DataFrame:
         )
 
     # return df.to_json(date_format="iso")
+    df.to_csv("/tmp/yesterday.csv")
     return df
 
 
@@ -120,6 +147,7 @@ def extract_yesterday_data(ti: TaskInstance) -> pd.DataFrame:
 def main():
     data = healthcheck_minio() >> extract_yesterday_data()
     create_report(data)
+    create_plot(data)
 
 
 main()

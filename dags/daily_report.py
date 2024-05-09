@@ -17,13 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 @task
-def create_report(data: str, ti: TaskInstance):
-    df = pd.read_json(data)
+def create_report(df: pd.DataFrame, ti: TaskInstance):
+    # df = pd.read_json(data)
     logger.info(df)
+    df.to_csv('/home/ubuntu/yesterday.csv')
 
 
 @task
-def extract_yesterday_data(ti: TaskInstance) -> str:
+def extract_yesterday_data(ti: TaskInstance) -> pd.DataFrame:
     minio = get_minio()
     bucket = minio.Bucket("datasets")
 
@@ -56,12 +57,12 @@ def extract_yesterday_data(ti: TaskInstance) -> str:
     f_since_yesterday = df["dt"] >= exec_date.add(days=-1).naive()
     f_till_today = df["dt"] < exec_date.naive()
     filter_yesterday = f_till_today & f_since_yesterday
-    #from IPython import embed; embed()
 
     # filter data
     df = df.loc[filter_yesterday, :]
 
-    return df.to_json(date_format="iso")
+    # return df.to_json(date_format="iso")
+    return df
 
 
 @dag(

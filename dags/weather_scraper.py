@@ -46,7 +46,7 @@ def scrape_data(query):
 
 
 @task
-def process_data(data):
+def process_data(data: dict) -> dict:
     """
     Process the passed data
     """
@@ -64,7 +64,7 @@ def process_data(data):
 
 
 @task
-def publish_data(line):
+def publish_data(line: str):
     """
     Publish/persist the data to CSV file
     """
@@ -92,7 +92,7 @@ def publish_data(line):
 
 
 @task
-def validate_data(data: dict):
+def validate_data(data: dict) -> dict:
     path = Path(__file__).parent / "weather.schema.json"
 
     with open(path, "r") as file:
@@ -101,7 +101,7 @@ def validate_data(data: dict):
         return data
 
 
-@task
+@task(retries=3)
 def healthcheck_weather():
     conn = BaseHook.get_connection("openweathermap")
     ping(conn.host, "-c", "1", _timeout=3)

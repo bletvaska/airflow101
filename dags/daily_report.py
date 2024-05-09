@@ -19,12 +19,17 @@ logger = logging.getLogger(__name__)
 
 
 @task
+def notify(ti: TaskInstance):
+    pass
+
+
+@task
 def create_plot(df: pd.DataFrame, ti: TaskInstance):
     # get ready
     exec_date = pendulum.instance(ti.execution_date).start_of("day")
     date = exec_date.add(days=-1).to_date_string()
     df.index = range(0, len(df))
-    
+
     # create figure
     fig = px.line(
         df,
@@ -34,16 +39,16 @@ def create_plot(df: pd.DataFrame, ti: TaskInstance):
         line_shape="spline",
         labels={"dt": "čas", "temp": "teplota"},
     )
-    
+
     # save graph as temporary file
     path = Path(tempfile.mkstemp()[1])
-    fig.write_image(path, format='png')
-    
+    fig.write_image(path, format="png")
+
     # upload to s3/minio
     minio = get_minio()
     bucket = minio.Bucket("reports")
     bucket.upload_file(path, f"{date}.png")
-    
+
     # cleanup
     path.unlink(True)
 
@@ -147,8 +152,10 @@ def extract_yesterday_data(ti: TaskInstance) -> pd.DataFrame:
 )
 def main():
     data = healthcheck_minio() >> extract_yesterday_data()
-    create_report(data)
-    create_plot(data)
+    [
+        create_report(data),
+        create_plot(data)
+    ] >> notify()
 
 
 main()

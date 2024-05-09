@@ -35,12 +35,15 @@ Pre absolvovanie kurzu je potrené poznať minimálne základy jazyka Python. Zn
 
 ```mermaid
 graph LR
-    A[minio health check] --> B[get data]
-    C[weather svc health check] --> B
-    B --> D[filter data]
-    D --> E[update dataset]
+    A[health check minio] --> B[scrape data]
+    C[health check weather] --> B
+    B --> D[validate data]
+    D --> E[process data]
+    E --> F[publish dataset]
 
-    F[minio health check] --> G[get data]
-    G --> H[create report]
-    H --> I[upload report]
+    G[health check minio] --> H[extract yesterdays data]
+    I --> J[create report]
+    I --> K[create plot]
+    J --> L[notify]
+    K --> L
 ```

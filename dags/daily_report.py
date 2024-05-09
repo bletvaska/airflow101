@@ -1,9 +1,10 @@
 import logging
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
 from pendulum import datetime
-from airflow.decorators import dag, task
 from botocore.exceptions import ClientError
+from airflow.decorators import dag, task
 from airflow.exceptions import AirflowFailException
 from airflow.models import TaskInstance
 import pandas as pd

@@ -1,4 +1,5 @@
 from http import HTTPStatus
+import json
 import logging
 
 from airflow.decorators import dag, task
@@ -7,6 +8,7 @@ from airflow.exceptions import AirflowFailException
 import httpx
 from pendulum import datetime
 from sh import ping
+from jsonschema import validate
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +72,16 @@ def publish_data(line: str):
 def is_service_alive():
     logger.info(">> Healthcheck")
     conn = BaseHook.get_connection("openweathermap")
-    ping('-c', 1, conn.host, _timeout=2)
+    ping("-c", 1, conn.host, _timeout=2)
     # return 'ping -c 1 -w 2 api.openweathermap.org'
+
+
+@task
+def validate_data(data: dict) -> dict:
+    with open('/home/ubuntu/airflow/dags/weather.schema.json') as schema_file:
+        schema = json.load(schema_file)
+        validate(instance=data, schema=schema)
+        return data
 
 
 @dag(
@@ -86,7 +96,8 @@ def is_service_alive():
 def main(query: str = "kosice,sk"):
     # scrape_data | process_data | publish_data
     measurement = is_service_alive() >> scrape_data(query)
-    line = process_data(measurement)
+    validated_data = validate_data(measurement)
+    line =  process_data(validated_data)
     publish_data(line)
 
 

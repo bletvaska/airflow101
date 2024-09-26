@@ -12,13 +12,11 @@
     ],
     "properties": {
         "name": {
-            "title": "Name of the city",
             "description": "Name of the city, where the measurement was made",
             "type": "string"
         },
         "dt": {
-            "title": "timestamp",
-            "description": "Unix time of measurement",
+            "description": "Unix timestamp of measurement",
             "type": "integer"
         },
         "sys": {
@@ -29,7 +27,7 @@
             ],
             "properties": {
                 "country": {
-                    "title": "Country",
+                    "description": "Country Code",
                     "type": "string",
                     "pattern": "^[A-Z]{2}$"
                 }

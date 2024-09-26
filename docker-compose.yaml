@@ -1,0 +1,16 @@
+services:
+  minio:
+    ports:
+     - 9000:9000
+     - 9001:9001
+    volumes:
+      - storage:/bitnami/minio/data
+    environment: 
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=jahodka123
+      - MINIO_DEFAULT_BUCKETS=dataset,reports
+    image: bitnami/minio
+
+
+volumes:
+  storage: {}

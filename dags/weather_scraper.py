@@ -77,10 +77,21 @@ def is_service_alive():
     # return 'ping -c 1 -w 2 api.openweathermap.org'
 
 
+@task(retries=3)
+def is_minio_alive():
+    logger.info(">> MinIO Healthcheck")
+    conn = BaseHook.get_connection("minio")
+    url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
+    response = httpx.head(url)
+
+    if response.status_code != HTTPStatus.OK:
+        raise AirflowFailException("Minio server not available")
+
+
 @task
 def validate_data(data: dict) -> dict:
-    path = Path(__file__).parent / 'weather.schema.json'
-    
+    path = Path(__file__).parent / "weather.schema.json"
+
     with open(path) as schema_file:
         schema = json.load(schema_file)
         validate(instance=data, schema=schema)
@@ -98,7 +109,7 @@ def validate_data(data: dict) -> dict:
 )
 def main(query: str = "kosice,sk"):
     # scrape_data | process_data | publish_data
-    measurement = is_service_alive() >> scrape_data(query)
+    measurement = is_minio_alive() >> is_service_alive() >> scrape_data(query)
     validated_data = validate_data(measurement)
     line = process_data(validated_data)
     publish_data(line)

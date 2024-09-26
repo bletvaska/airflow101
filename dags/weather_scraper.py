@@ -64,8 +64,16 @@ def publish_data(line: str):
     Saves measurement to CSV file.
     """
     logger.info(">> Publishing Data")
+    
+    # stiahni dataset.csv z S3/Minio
+    
+    # pripoj k nemu posledne meranie
     with open("dataset.csv", mode="a") as dataset:
         print(line, file=dataset)
+        
+    # uploadni dataset.csv naspat do S3/Minio
+    
+    # zmaz docasne stiahnuty subor
 
 
 @task(retries=3)
@@ -109,7 +117,7 @@ def validate_data(data: dict) -> dict:
 )
 def main(query: str = "kosice,sk"):
     # scrape_data | process_data | publish_data
-    measurement = is_minio_alive() >> is_service_alive() >> scrape_data(query)
+    measurement = [ is_minio_alive(), is_service_alive() ] >> scrape_data(query)
     validated_data = validate_data(measurement)
     line = process_data(validated_data)
     publish_data(line)

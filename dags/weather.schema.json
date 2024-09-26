@@ -1,0 +1,86 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Openweathermap measurement",
+    "description": "JSON schema for current weather measurement",
+    "type": "object",
+    "required": [
+        "name",
+        "dt",
+        "sys",
+        "main",
+        "wind"
+    ],
+    "properties": {
+        "name": {
+            "title": "Name of the city",
+            "description": "Name of the city, where the measurement was made",
+            "type": "string"
+        },
+        "dt": {
+            "title": "timestamp",
+            "description": "Unix time of measurement",
+            "type": "integer"
+        },
+        "sys": {
+            "title": "Sys Properties",
+            "type": "object",
+            "required": [
+                "country"
+            ],
+            "properties": {
+                "country": {
+                    "title": "Country",
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$"
+                }
+            }
+        },
+        "wind": {
+            "title": "Wind Properties",
+            "type": "object",
+            "required": [
+                "speed",
+                "deg"
+            ],
+            "properties": {
+                "speed": {
+                    "title": "Wind Speed",
+                    "type": "number",
+                    "minimum": 0
+                },
+                "deg": {
+                    "title": "Wind Direction",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 359
+                }
+            }
+        },
+        "main": {
+            "title": "Main Properties",
+            "type": "object",
+            "required": [
+                "temp",
+                "humidity",
+                "pressure"
+            ],
+            "properties": {
+                "temp": {
+                    "title": "Temperature",
+                    "type": "number"
+                },
+                "humidity": {
+                    "title": "Humidity",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                },
+                "pressure": {
+                    "title": "Pressure",
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        }
+    }
+}

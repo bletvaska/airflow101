@@ -1,6 +1,7 @@
 from http import HTTPStatus
 import json
 import logging
+from pathlib import Path
 
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
@@ -22,7 +23,7 @@ def scrape_data(query: str) -> dict:
 
     conn = BaseHook.get_connection("openweathermap")
     url = f"{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather"
-    params = {"appid": conn.password, "q": query, "units": "metric"}
+    params = {"appid": conn.password, "q": query, "units": conn.extra_dejson["units"]}
 
     response = httpx.get(url, params=params)
 
@@ -78,7 +79,9 @@ def is_service_alive():
 
 @task
 def validate_data(data: dict) -> dict:
-    with open('/home/ubuntu/airflow/dags/weather.schema.json') as schema_file:
+    path = Path(__file__).parent / 'weather.schema.json'
+    
+    with open(path) as schema_file:
         schema = json.load(schema_file)
         validate(instance=data, schema=schema)
         return data
@@ -97,7 +100,7 @@ def main(query: str = "kosice,sk"):
     # scrape_data | process_data | publish_data
     measurement = is_service_alive() >> scrape_data(query)
     validated_data = validate_data(measurement)
-    line =  process_data(validated_data)
+    line = process_data(validated_data)
     publish_data(line)
 
 

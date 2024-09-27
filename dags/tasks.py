@@ -1,13 +1,13 @@
 from http import HTTPStatus
 import logging
 
+import httpx
 from airflow.decorators import task
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
-import boto3
 
+from helpers import get_minio
 from properties import DATASETS_BUCKET, S3_CONN_NAME
-import httpx
 
 
 logger = logging.getLogger(__name__)
@@ -24,16 +24,7 @@ def is_minio_alive():
     if response.status_code != HTTPStatus.OK:
         raise AirflowFailException("Minio server not available")
 
-    # check if bucket datasets exists
-    conn = BaseHook.get_connection(S3_CONN_NAME)
-
-    # try:
-    minio = boto3.resource(
-        "s3",
-        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
+    minio = get_minio()
 
     # minio.meta.client.head_bucket(Bucket="jano")
     if minio.Bucket(DATASETS_BUCKET).creation_date is None:

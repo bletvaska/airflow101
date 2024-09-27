@@ -11,11 +11,11 @@ import httpx
 from pendulum import datetime
 from sh import ping
 from jsonschema import validate
-import boto3
 import botocore
 
+from helpers import get_minio
 from tasks import is_minio_alive
-from properties import DATASETS_BUCKET, S3_CONN_NAME, OWM_CONN_NAME
+from properties import DATASETS_BUCKET, OWM_CONN_NAME
 
 
 logger = logging.getLogger(__name__)
@@ -72,13 +72,7 @@ def publish_data(line: str):
     """
     logger.info(">> Publishing Data")
 
-    conn = BaseHook.get_connection(S3_CONN_NAME)
-    minio = boto3.resource(
-        "s3",
-        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
+    minio = get_minio()
     bucket = minio.Bucket(DATASETS_BUCKET)
     _, filename = tempfile.mkstemp()
     tmpfile = Path(filename)

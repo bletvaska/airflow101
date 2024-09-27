@@ -1,7 +1,6 @@
 from http import HTTPStatus
 import json
 import logging
-import os
 from pathlib import Path
 import tempfile
 
@@ -15,6 +14,9 @@ from jsonschema import validate
 import boto3
 import botocore
 
+from properties import DATASETS_BUCKET, S3_CONN_NAME, OWM_CONN_NAME
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +27,7 @@ def scrape_data(query: str) -> dict:
     """
     logger.info(">> Scraping Data")
 
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(S3_CONN_NAME)
     url = f"{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather"
     params = {"appid": conn.password, "q": query, "units": conn.extra_dejson["units"]}
 
@@ -68,31 +70,31 @@ def publish_data(line: str):
     Saves measurement to CSV file.
     """
     logger.info(">> Publishing Data")
-    
-    conn = BaseHook.get_connection('minio')
+
+    conn = BaseHook.get_connection(S3_CONN_NAME)
     minio = boto3.resource(
-        's3',
-        endpoint_url=f'{conn.schema}://{conn.host}:{conn.port}',
+        "s3",
+        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
         aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password
-    )  
-    bucket = minio.Bucket('datasets')
+        aws_secret_access_key=conn.password,
+    )
+    bucket = minio.Bucket(DATASETS_BUCKET)
     _, filename = tempfile.mkstemp()
     tmpfile = Path(filename)
-    
+
     # stiahni dataset.csv z S3/Minio
     try:
-        bucket.download_file('dataset.csv', tmpfile)
+        bucket.download_file("dataset.csv", tmpfile)
     except botocore.exceptions.ClientError:
         logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
-        
+
     # pripoj k nemu posledne meranie
     with open(tmpfile, mode="a") as dataset:
         print(line, file=dataset)
-        
+
     # uploadni dataset.csv naspat do S3/Minio
-    bucket.upload_file(tmpfile, 'dataset.csv')
-    
+    bucket.upload_file(tmpfile, "dataset.csv")
+
     # zmaz docasne stiahnuty subor
     tmpfile.unlink(True)
 
@@ -101,7 +103,7 @@ def publish_data(line: str):
 # @task.bash
 def is_service_alive():
     logger.info(">> Healthcheck")
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(OWM_CONN_NAME)
     ping("-c", 1, conn.host, _timeout=2)
     # return 'ping -c 1 -w 2 api.openweathermap.org'
 
@@ -109,7 +111,7 @@ def is_service_alive():
 @task(retries=3)
 def is_minio_alive():
     logger.info(">> MinIO Healthcheck")
-    conn = BaseHook.get_connection("minio")
+    conn = BaseHook.get_connection(S3_CONN_NAME)
     url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
     response = httpx.head(url)
 
@@ -138,7 +140,7 @@ def validate_data(data: dict) -> dict:
 )
 def main(query: str = "kosice,sk"):
     # scrape_data | process_data | publish_data
-    measurement = [ is_minio_alive(), is_service_alive() ] >> scrape_data(query)
+    measurement = [is_minio_alive(), is_service_alive()] >> scrape_data(query)
     validated_data = validate_data(measurement)
     line = process_data(validated_data)
     publish_data(line)

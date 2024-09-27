@@ -14,6 +14,7 @@ from jsonschema import validate
 import boto3
 import botocore
 
+from tasks import is_minio_alive
 from properties import DATASETS_BUCKET, S3_CONN_NAME, OWM_CONN_NAME
 
 
@@ -106,17 +107,6 @@ def is_service_alive():
     conn = BaseHook.get_connection(OWM_CONN_NAME)
     ping("-c", 1, conn.host, _timeout=2)
     # return 'ping -c 1 -w 2 api.openweathermap.org'
-
-
-@task(retries=3)
-def is_minio_alive():
-    logger.info(">> MinIO Healthcheck")
-    conn = BaseHook.get_connection(S3_CONN_NAME)
-    url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
-    response = httpx.head(url)
-
-    if response.status_code != HTTPStatus.OK:
-        raise AirflowFailException("Minio server not available")
 
 
 @task

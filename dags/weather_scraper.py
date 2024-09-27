@@ -121,7 +121,7 @@ def validate_data(data: dict) -> dict:
 
 @dag(
     "weather_scraper",
-    dag_display_name="Weather Scraper",
+    dag_display_name="Weather Scraper 20m",
     description="Scrapes weather from openweathermap.org",
     schedule="*/20 * * * *",
     start_date=datetime(2024, 9, 24),

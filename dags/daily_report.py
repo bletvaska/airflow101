@@ -21,7 +21,7 @@ def create_report(data: dict):
 
 @dag(
     "daily_report",
-    dag_display_name="Daily Report",
+    dag_display_name="Daily Report 1d",
     description="Creates daily weather reports",
     schedule="5 0 * * *",
     start_date=datetime(2024, 1, 1),

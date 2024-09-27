@@ -27,7 +27,7 @@ def scrape_data(query: str) -> dict:
     """
     logger.info(">> Scraping Data")
 
-    conn = BaseHook.get_connection(S3_CONN_NAME)
+    conn = BaseHook.get_connection(OWM_CONN_NAME)
     url = f"{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather"
     params = {"appid": conn.password, "q": query, "units": conn.extra_dejson["units"]}
 

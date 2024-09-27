@@ -1,7 +1,9 @@
 from http import HTTPStatus
 import json
 import logging
+import os
 from pathlib import Path
+import tempfile
 
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
@@ -10,6 +12,8 @@ import httpx
 from pendulum import datetime
 from sh import ping
 from jsonschema import validate
+import boto3
+import botocore
 
 logger = logging.getLogger(__name__)
 
@@ -65,15 +69,32 @@ def publish_data(line: str):
     """
     logger.info(">> Publishing Data")
     
-    # stiahni dataset.csv z S3/Minio
+    conn = BaseHook.get_connection('minio')
+    minio = boto3.resource(
+        's3',
+        endpoint_url=f'{conn.schema}://{conn.host}:{conn.port}',
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password
+    )  
+    bucket = minio.Bucket('datasets')
+    _, filename = tempfile.mkstemp()
+    tmpfile = Path(filename)
     
+    # stiahni dataset.csv z S3/Minio
+    try:
+        bucket.download_file('dataset.csv', tmpfile)
+    except botocore.exceptions.ClientError:
+        logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
+        
     # pripoj k nemu posledne meranie
-    with open("dataset.csv", mode="a") as dataset:
+    with open(tmpfile, mode="a") as dataset:
         print(line, file=dataset)
         
     # uploadni dataset.csv naspat do S3/Minio
+    bucket.upload_file(tmpfile, 'dataset.csv')
     
     # zmaz docasne stiahnuty subor
+    tmpfile.unlink(True)
 
 
 @task(retries=3)

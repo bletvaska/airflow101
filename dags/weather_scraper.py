@@ -83,20 +83,20 @@ def publish_data(line: str):
     _, filename = tempfile.mkstemp()
     tmpfile = Path(filename)
 
-    # stiahni dataset.csv z S3/Minio
+    # download dataset.csv from S3
     try:
         bucket.download_file("dataset.csv", tmpfile)
     except botocore.exceptions.ClientError:
         logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
 
-    # pripoj k nemu posledne meranie
+    # append last measurement
     with open(tmpfile, mode="a") as dataset:
         print(line, file=dataset)
 
-    # uploadni dataset.csv naspat do S3/Minio
+    # upload updated dataset back to S3
     bucket.upload_file(tmpfile, "dataset.csv")
 
-    # zmaz docasne stiahnuty subor
+    # remove temporary file
     tmpfile.unlink(True)
 
 

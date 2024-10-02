@@ -1,5 +1,7 @@
+from pathlib import Path
 from airflow.hooks.base import BaseHook
 import boto3
+import jinja2
 
 from properties import S3_CONN_NAME
 
@@ -17,3 +19,12 @@ def get_minio():
     )
 
     return client
+
+
+def get_jinja():
+    path = Path(__file__).parent.parent / 'templates'
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(path),
+        autoescape=False
+    )
+    return env

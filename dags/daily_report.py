@@ -1,11 +1,9 @@
-import json
 import logging
 from pathlib import Path
 import tempfile
 
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowFailException
-from airflow.models import TaskInstance
 import pandas as pd
 from pendulum import datetime
 import botocore
@@ -13,7 +11,7 @@ import pendulum
 from pandas.core.frame import DataFrame
 
 from properties import DATASETS_BUCKET
-from helpers import get_minio
+from helpers import get_jinja, get_minio
 from tasks import is_minio_alive
 
 
@@ -58,7 +56,7 @@ def extract_yesterday_data(logical_date: pendulum.DateTime) -> DataFrame:
         tf_today = df["dt"] < logical_date.start_of('day').naive()
 
         logging.info(" >> Printing filtered result")
-        filtered_data = df.loc[tf_yesterday & tf_today, ["dt", "temp", "humidity"]]
+        filtered_data = df.loc[tf_yesterday & tf_today, ["dt", "city", "temp", "humidity"]]
         # print(filtered_data)
         
         return filtered_data
@@ -75,10 +73,26 @@ def extract_yesterday_data(logical_date: pendulum.DateTime) -> DataFrame:
 
 
 @task()
-def create_report(data):
+def create_report(data: DataFrame):
     logger.info(">> Creating a report")
     
-    print(data)
+    jinja = get_jinja()
+    template = jinja.get_template('weather.tpl.j2')
+    
+    # from IPython import embed; embed()
+    ts = pendulum.from_timestamp(data.iloc[0]['dt'].timestamp())
+    
+    model = {
+        'city': data.iloc[0]['city'],
+        'date': ts.to_date_string(),
+        'max_temp': data['temp'].max(),
+        'min_temp': data['temp'].min(),
+        'avg_temp': data['temp'].mean(),
+        'timestamp': pendulum.now('utc').to_datetime_string(),
+        # 'temp_unit': '°C'
+    }
+    
+    print(template.render(model))
 
 
 @dag(

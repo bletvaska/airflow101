@@ -10,7 +10,7 @@ import botocore
 import pendulum
 from pandas.core.frame import DataFrame
 
-from properties import DATASETS_BUCKET
+from properties import DATASETS_BUCKET, REPORTS_BUCKET
 from helpers import get_jinja, get_minio
 from tasks import is_minio_alive
 
@@ -81,9 +81,10 @@ def create_report(data: DataFrame):
     
     # from IPython import embed; embed()
     ts = pendulum.from_timestamp(data.iloc[0]['dt'].timestamp())
+    city = data.iloc[0]['city']
     
     model = {
-        'city': data.iloc[0]['city'],
+        'city': city,
         'date': ts.to_date_string(),
         'max_temp': data['temp'].max(),
         'min_temp': data['temp'].min(),
@@ -92,7 +93,17 @@ def create_report(data: DataFrame):
         # 'temp_unit': '°C'
     }
     
-    print(template.render(model))
+    # render to temp file
+    _, path = tempfile.mkstemp()
+    with open(path, 'w') as file:
+        print(template.render(model), file=file)
+        
+    # upload to s3/minio
+    bucket = get_minio().Bucket(REPORTS_BUCKET)
+    bucket.upload_file(path, f'{city}.txt')
+    
+    # cleanup
+    Path(path).unlink(True)
 
 
 @dag(

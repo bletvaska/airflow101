@@ -86,11 +86,11 @@ def create_report(data):
     dag_display_name="Daily Report 1d",
     description="Creates daily weather reports",
     schedule="5 0 * * *",
-    start_date=datetime(2024, 1, 1),
+    start_date=datetime(2024, 9, 1),
     tags=["weather", "devops", "dtit", "report"],
     catchup=False,
 )
-def main():
+def main(hello: str = 'world'):
     # [ is_minio_alive ] -> [ extract_yesterday_data ] -> [ create_report ]
     extracted_data = is_minio_alive() >> extract_yesterday_data()
     create_report(extracted_data)

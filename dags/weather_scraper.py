@@ -16,9 +16,12 @@ def scrape_data(query: str, units: str) -> str:
     conn = BaseHook.get_connection('openweathermap')
 
     base_url = f"{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather"
-
-    url = f"{base_url}?appid={conn.password}&q={query}&units={units}"
-    response = httpx.get(url)
+    params = {
+        'appid': conn.password,
+        'q': query,
+        'units': units,
+    }
+    response = httpx.get(base_url, params=params)
 
     if response.status_code != HTTPStatus.OK:
         raise AirflowFailException("Error: Something is wrong.")

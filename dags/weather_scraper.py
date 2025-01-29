@@ -8,7 +8,7 @@ import httpx
 from pendulum import datetime
 
 
-@task
+@task(task_display_name="Scrape Data")
 def scrape_data(query: str, units: str) -> str:
     """
     Scrapes the data from openweathermap.org
@@ -29,7 +29,7 @@ def scrape_data(query: str, units: str) -> str:
     return response.text
 
 
-@task
+@task(task_display_name="Process Data")
 def  process_data(data: str) -> str:
     """
     Process and extract the downloaded data.
@@ -53,7 +53,7 @@ def  process_data(data: str) -> str:
     # return None
 
 
-@task
+@task(task_display_name="Publish Data")
 def publish_data(line: str):
     """
     Data persistence.

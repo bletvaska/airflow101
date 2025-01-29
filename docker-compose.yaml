@@ -11,6 +11,18 @@ services:
     volumes:
     - storage:/bitnami/minio/data
 
+  postgres:
+    image: bitnami/postgresql
+    volumes:
+    - db:/bitnami/postgresql
+    ports:
+    - 5432:5432
+    environment:
+     - POSTGRESQL_PASSWORD=secret
+     - POSTGRESQL_DATABASE=airflow
+     - POSTGRESQL_USERNAME=airflow_user
+
+
 volumes:
   storage:
-  
+  db:

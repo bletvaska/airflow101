@@ -7,6 +7,7 @@ from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 import boto3
+import botocore
 import httpx
 import jsonschema
 from pendulum import datetime
@@ -105,7 +106,10 @@ def publish_data(line: str):
     path = Path(mkstemp()[1])
 
     # download
-    bucket.download_file("dataset.csv", path)
+    try:
+        bucket.download_file("dataset.csv", path)
+    except botocore.exceptions.ClientError:
+        print("Dataset doesnt't exist in bucket. Possible first time upload.")
 
     # append
     with open(path, "a") as dataset:

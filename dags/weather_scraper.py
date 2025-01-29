@@ -1,10 +1,12 @@
 from http import HTTPStatus
 import json
+from pathlib import Path
 
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
 import httpx
+import jsonschema
 from pendulum import datetime
 
 
@@ -31,8 +33,14 @@ def scrape_data(query: str, units: str) -> str:
 
 @task(task_display_name="Validate Data")
 def validate_data(data: str) -> dict:
-    data = json.loads(data)
-    return data
+    instance = json.loads(data)
+
+    path = Path(__file__).parent
+    with open(path / 'weather.schema.json', 'r') as file:
+        schema = json.load(file)
+
+    jsonschema.validate(instance, schema)
+    return instance
 
 
 @task(task_display_name="Process Data")

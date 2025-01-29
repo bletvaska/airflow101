@@ -11,10 +11,21 @@ from pendulum import datetime
 from sh import ping
 
 
+@task(task_display_name="MinIO Healthcheck")
+def is_minio_alive():
+    conn = BaseHook.get_connection("minio")
+    url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
+
+    response = httpx.get(url)
+
+    if response.status_code != HTTPStatus.OK:
+        raise AirflowFailException("MinIO service is unhelathy.")
+
+
 @task(task_display_name="Openweathermap Healthcheck")
 def is_service_alive():
     conn = BaseHook.get_connection("openweathermap")
-    ping(conn.host, '-c', 1, _timeout=3)
+    ping(conn.host, "-c", 1, _timeout=3)
 
 
 @task(task_display_name="Scrape Data")
@@ -43,7 +54,7 @@ def validate_data(data: str) -> dict:
     instance = json.loads(data)
 
     path = Path(__file__).parent
-    with open(path / 'weather.schema.json', 'r') as file:
+    with open(path / "weather.schema.json", "r") as file:
         schema = json.load(file)
 
     jsonschema.validate(instance, schema)
@@ -94,7 +105,7 @@ def publish_data(line: str):
     tags=["weather", "devops", "dt"],
 )
 def main(query="kosice", units="metric"):
-    measurement = is_service_alive() >> scrape_data(query, units)
+    measurement = is_minio_alive() >> is_service_alive() >> scrape_data(query, units)
     valid_data = validate_data(measurement)
     entry = process_data(valid_data)
     publish_data(entry)

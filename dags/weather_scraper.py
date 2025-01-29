@@ -105,7 +105,7 @@ def publish_data(line: str):
     tags=["weather", "devops", "dt"],
 )
 def main(query="kosice", units="metric"):
-    measurement = is_minio_alive() >> is_service_alive() >> scrape_data(query, units)
+    measurement = [ is_minio_alive(),  is_service_alive() ] >> scrape_data(query, units)
     valid_data = validate_data(measurement)
     entry = process_data(valid_data)
     publish_data(entry)

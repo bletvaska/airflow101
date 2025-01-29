@@ -1,6 +1,7 @@
 from http import HTTPStatus
 import json
 from pathlib import Path
+from tempfile import mkstemp
 
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
@@ -99,16 +100,22 @@ def publish_data(line: str):
         aws_secret_access_key=conn.password,
     )
 
-    # download
+    # setup
     bucket = minio.Bucket("datasets")
-    bucket.download_file("dataset.csv", "/tmp/dataset.csv")
+    path = Path(mkstemp()[1])
+
+    # download
+    bucket.download_file("dataset.csv", path)
 
     # append
-    with open("/tmp/dataset.csv", "a") as dataset:
+    with open(path, "a") as dataset:
         print(line, file=dataset)
 
     # upload
-    bucket.upload_file("/tmp/dataset.csv", "dataset.csv")
+    bucket.upload_file(path, "dataset.csv")
+
+    # cleanup
+    path.unlink(True)
 
 
 @dag(

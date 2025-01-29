@@ -5,6 +5,7 @@ from pathlib import Path
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
+import boto3
 import httpx
 import jsonschema
 from pendulum import datetime
@@ -89,10 +90,25 @@ def publish_data(line: str):
     """
     Data persistence.
     """
-    # print('>> Publishing Data')
+    # create minio client
+    conn = BaseHook.get_connection("minio")
+    minio = boto3.resource(
+        "s3",
+        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password,
+    )
 
-    with open("dataset.csv", "a") as dataset:
+    # download
+    bucket = minio.Bucket("datasets")
+    bucket.download_file("dataset.csv", "/tmp/dataset.csv")
+
+    # append
+    with open("/tmp/dataset.csv", "a") as dataset:
         print(line, file=dataset)
+
+    # upload
+    bucket.upload_file("/tmp/dataset.csv", "dataset.csv")
 
 
 @dag(
@@ -105,7 +121,7 @@ def publish_data(line: str):
     tags=["weather", "devops", "dt"],
 )
 def main(query="kosice", units="metric"):
-    measurement = [ is_minio_alive(),  is_service_alive() ] >> scrape_data(query, units)
+    measurement = [is_minio_alive(), is_service_alive()] >> scrape_data(query, units)
     valid_data = validate_data(measurement)
     entry = process_data(valid_data)
     publish_data(entry)

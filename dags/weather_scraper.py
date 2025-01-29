@@ -8,6 +8,13 @@ from airflow.exceptions import AirflowFailException
 import httpx
 import jsonschema
 from pendulum import datetime
+from sh import ping
+
+
+@task(task_display_name="Openweathermap Healthcheck")
+def is_service_alive():
+    conn = BaseHook.get_connection("openweathermap")
+    ping(conn.host, '-c', 1, _timeout=3)
 
 
 @task(task_display_name="Scrape Data")
@@ -87,6 +94,7 @@ def publish_data(line: str):
     tags=["weather", "devops", "dt"],
 )
 def main(query="kosice", units="metric"):
+    is_service_alive()
     measurement = scrape_data(query, units)
     valid_data = validate_data(measurement)
     entry = process_data(valid_data)

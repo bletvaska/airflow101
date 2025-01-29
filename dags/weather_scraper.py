@@ -13,29 +13,34 @@ def scrape_data(query: str, units: str) -> str:
     """
     Scrapes the data from openweathermap.org
     """
-    conn = BaseHook.get_connection('openweathermap')
+    conn = BaseHook.get_connection("openweathermap")
 
     base_url = f"{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather"
     params = {
-        'appid': conn.password,
-        'q': query,
-        'units': units,
+        "appid": conn.password,
+        "q": query,
+        "units": units,
     }
     response = httpx.get(base_url, params=params)
 
     if response.status_code != HTTPStatus.OK:
         raise AirflowFailException("Error: Something is wrong.")
-    
+
     return response.text
 
 
+@task(task_display_name="Validate Data")
+def validate_data(data: str) -> dict:
+    data = json.loads(data)
+    return data
+
+
 @task(task_display_name="Process Data")
-def  process_data(data: str) -> str:
+def process_data(data: dict) -> str:
     """
     Process and extract the downloaded data.
     """
     # print('>> Processing Data')
-    data = json.loads(data)
     result = "{};{};{};{};{};{};{};{};{};{}".format(
         data["dt"],
         data["name"],
@@ -73,13 +78,14 @@ def publish_data(line: str):
     catchup=False,
     tags=["weather", "devops", "dt"],
 )
-def main(query='kosice', units='metric'):
+def main(query="kosice", units="metric"):
     measurement = scrape_data(query, units)
-    entry = process_data(measurement)
+    valid_data = validate_data(measurement)
+    entry = process_data(valid_data)
     publish_data(entry)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main().test()
 else:
     main()

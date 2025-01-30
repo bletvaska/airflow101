@@ -38,6 +38,7 @@ def extract_yesterday_data():
                 "wind_angle",
             ],
         )
+        path.unlink(True)
 
         # prekonvertovanie sekund na cas
         df["dt"] = pd.to_datetime(df["dt"], unit="s")
@@ -54,18 +55,16 @@ def extract_yesterday_data():
 
         # vyfiltrovanie zaznamov
         result = df.loc[filter_yesterday, :]
-        print(result)
+        return result
 
     except botocore.exceptions.ClientError:
         print("Dataset doesnt't exist in bucket. Possible first time upload.")
         raise AirflowFailException("Dataset is missing.")
 
-    path.unlink(True)
-
 
 @task(task_display_name="Create Report")
-def create_report():
-    pass
+def create_report(df: pd.DataFrame):
+    print(df)
 
 
 @dag(
@@ -78,7 +77,8 @@ def create_report():
     tags=["weather", "devops", "dt"],
 )
 def main():
-    is_minio_alive() >> extract_yesterday_data() >> create_report()
+    data = is_minio_alive() >> extract_yesterday_data()
+    create_report(data)
 
 
 if __name__ == "__main__":

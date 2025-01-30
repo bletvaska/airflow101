@@ -6,23 +6,14 @@ from tempfile import mkstemp
 from airflow.decorators import dag, task
 from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
-import boto3
 import botocore
 import httpx
 import jsonschema
 from pendulum import datetime
 from sh import ping
 
-
-@task(task_display_name="MinIO Healthcheck")
-def is_minio_alive():
-    conn = BaseHook.get_connection("minio")
-    url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
-
-    response = httpx.get(url)
-
-    if response.status_code != HTTPStatus.OK:
-        raise AirflowFailException("MinIO service is unhelathy.")
+from helpers import get_minio
+from tasks import is_minio_alive
 
 
 @task(task_display_name="Openweathermap Healthcheck")
@@ -92,17 +83,8 @@ def publish_data(line: str):
     """
     Data persistence.
     """
-    # create minio client
-    conn = BaseHook.get_connection("minio")
-    minio = boto3.resource(
-        "s3",
-        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
-
     # setup
-    bucket = minio.Bucket("datasets")
+    bucket = get_minio().Bucket("datasets")
     path = Path(mkstemp()[1])
 
     # download

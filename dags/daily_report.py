@@ -1,26 +1,66 @@
-from http import HTTPStatus
-
+from pathlib import Path
+from tempfile import mkstemp
 from airflow.decorators import dag, task
-from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowFailException
+import botocore
 from pendulum import datetime
-import httpx
+import pandas as pd
+import pendulum
 
-
-@task(task_display_name="MinIO Healthcheck")
-def is_minio_alive():
-    conn = BaseHook.get_connection("minio")
-    url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
-
-    response = httpx.get(url)
-
-    if response.status_code != HTTPStatus.OK:
-        raise AirflowFailException("MinIO service is unhelathy.")
+from helpers import get_minio
+from tasks import is_minio_alive
 
 
 @task(task_display_name="Extract Yesterday Data")
 def extract_yesterday_data():
-    pass
+    # setup
+    bucket = get_minio().Bucket("datasets")
+    path = Path(mkstemp()[1])
+
+    # download
+    try:
+        bucket.download_file("dataset.csv", path)
+
+        # extract
+        df = pd.read_csv(
+            path,
+            sep=";",
+            names=[
+                "dt",
+                "name",
+                "country",
+                "temp",
+                "hum",
+                "press",
+                "sunrise",
+                "sunset",
+                "wind_speed",
+                "wind_angle",
+            ],
+        )
+
+        # prekonvertovanie sekund na cas
+        df["dt"] = pd.to_datetime(df["dt"], unit="s")
+        df["sunrise"] = pd.to_datetime(df["sunrise"], unit="s")
+        df["sunset"] = pd.to_datetime(df["sunset"], unit="s")
+
+        # odstran duplikaty
+        df.drop_duplicates(inplace=True)
+
+        # vytvorenie filtra na filtrovanie vcerajsich dat
+        f_till_today = df["dt"] < pendulum.today("utc").naive()
+        f_since_yesterday = df["dt"] >= pendulum.yesterday("utc").naive()
+        filter_yesterday = f_since_yesterday & f_till_today
+
+        # vyfiltrovanie zaznamov
+        result = df.loc[filter_yesterday, :]
+        print(result)
+
+    except botocore.exceptions.ClientError:
+        print("Dataset doesnt't exist in bucket. Possible first time upload.")
+        raise AirflowFailException("Dataset is missing.")
+
+    path.unlink(True)
 
 
 @task(task_display_name="Create Report")

@@ -2,10 +2,12 @@ from pathlib import Path
 from tempfile import mkstemp
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowFailException
+from airflow.models import Variable
 import botocore
 from pendulum import datetime
 import pandas as pd
 import pendulum
+from apprise import Apprise
 
 from helpers import get_minio
 from tasks import is_minio_alive
@@ -62,23 +64,31 @@ def extract_yesterday_data():
         raise AirflowFailException("Dataset is missing.")
 
 
+@task(task_display_name="Notify")
+def notify(message: str):
+    apprise = Apprise()
+    token = Variable.get('PUSHBULLET_TOKEN')
+    apprise.add(f'pbul://{token}')
+    apprise.notify(title='Denný report', body=message)
+
+
 @task(task_display_name="Create Report")
-def create_report(df: pd.DataFrame):
+def create_report(df: pd.DataFrame) -> str:
     max = round(df["temp"].max(), 1)
     min = round(df["temp"].min(), 1)
     mean = round(df["temp"].mean(), 1)
 
     entry = df.iloc[0]
-    date = entry['dt']
+    date = entry['dt'].date()
     name = entry['name']
     country = entry['country']
 
-    print(df)
-
-    template = f'Dňa {date} sa teplota v meste {name} ({country}) pohybovala rozmedzí od {min}°C do {max}°C (priemerná teplota bola {mean}°C).'
-    print(template)
+    return f'Dňa {date} sa teplota v meste {name} ({country}) pohybovala v rozmedzí od {min}°C do {max}°C (priemerná teplota bola {mean}°C).'
 
 
+@task(task_display_name="Create PDF Report")
+def create_pdf_report(message: str):
+    pass
 
 @dag(
     "daily_report",
@@ -91,7 +101,9 @@ def create_report(df: pd.DataFrame):
 )
 def main():
     data = is_minio_alive() >> extract_yesterday_data()
-    create_report(data)
+    report = create_report(data)
+    notify(report)
+    create_pdf_report(report)
 
 
 if __name__ == "__main__":

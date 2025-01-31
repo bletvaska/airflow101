@@ -64,7 +64,20 @@ def extract_yesterday_data():
 
 @task(task_display_name="Create Report")
 def create_report(df: pd.DataFrame):
+    max = round(df["temp"].max(), 1)
+    min = round(df["temp"].min(), 1)
+    mean = round(df["temp"].mean(), 1)
+
+    entry = df.iloc[0]
+    date = entry['dt']
+    name = entry['name']
+    country = entry['country']
+
     print(df)
+
+    template = f'Dňa {date} sa teplota v meste {name} ({country}) pohybovala rozmedzí od {min}°C do {max}°C (priemerná teplota bola {mean}°C).'
+    print(template)
+
 
 
 @dag(

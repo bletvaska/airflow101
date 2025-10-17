@@ -1,30 +1,32 @@
 import json
+from pathlib import Path
+
 from airflow.sdk import dag, task, BaseHook
 from pendulum import datetime
 import httpx
 import jsonschema
 
 
-@task(task_display_name='Scrape Data')
+@task(task_display_name="Scrape Data")
 def scrape_data(query: str, units: str) -> dict:
     """
     Scrapes data from a specified source.
     """
     print(">> Scraping Data")
 
-    conn = BaseHook.get_connection('openweathermap')
+    conn = BaseHook.get_connection("openweathermap")
 
     url = f"{conn.schema}://{conn.host}:{conn.port}"
-    path = 'data/2.5/weather'
-    params = f'appid={conn.password}&q={query}&units={units}'
+    path = "data/2.5/weather"
+    params = f"appid={conn.password}&q={query}&units={units}"
 
-    response = httpx.get(f'{url}/{path}?{params}')
+    response = httpx.get(f"{url}/{path}?{params}")
     data = response.json()
 
     return data
 
 
-@task(task_display_name='Process Data')
+@task(task_display_name="Process Data")
 def process_data(data: dict) -> str:
     """
     Processes the scraped data.
@@ -46,7 +48,7 @@ def process_data(data: dict) -> str:
     )
 
 
-@task(task_display_name='Publish Data')
+@task(task_display_name="Publish Data")
 def publish_data(entry: str):
     """
     Publishes the processed data to a specified destination.
@@ -59,9 +61,10 @@ def publish_data(entry: str):
 
 @task(task_display_name="Validate JSON Data")
 def validate_data(data: dict):
-    print('>> Validating JSON Data')
+    print(">> Validating JSON Data")
 
-    with open('/home/ubuntu/airflow/weather.schema.json', 'r') as file:
+    path = Path(__file__).parent.parent / "weather.schema.json"
+    with open(path, "r") as file:
         schema = json.load(file)
         jsonschema.validate(instance=data, schema=schema)
 
@@ -69,22 +72,22 @@ def validate_data(data: dict):
 
 
 @dag(
-    'weather_scraper',
+    "weather_scraper",
     dag_display_name="Weather Scraper",
     description="A DAG to scrape weather data from openweathermap.org.",
-    schedule='*/20 * * * *',
+    schedule="*/20 * * * *",
     start_date=datetime(2025, 10, 1),
     catchup=False,
-    tags=['weather', 'devops', 'python', 'dt']
+    tags=["weather", "devops", "python", "dt"],
 )
-def main(query: str = 'kosice,sk', units: str = 'metric'):
+def main(query: str = "kosice,sk", units: str = "metric"):
     data = scrape_data(query, units)
     validated_data = validate_data(data)
     csv_entry = process_data(validated_data)
     publish_data(csv_entry)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main().test()
 else:
     main()

@@ -55,7 +55,8 @@ def publish_data(entry: str):
     """
     print(">> Publishing Data")
 
-    with open("dataset.csv", "a") as dataset:
+    path = Path(__file__).parent.parent / "dataset.csv"
+    with open(path, "a") as dataset:
         print(entry, file=dataset)
 
 

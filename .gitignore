@@ -1,1 +1,5 @@
 __pycache__/
+airflow.db*
+logs/
+simple_auth_manager_passwords.json.generated
+

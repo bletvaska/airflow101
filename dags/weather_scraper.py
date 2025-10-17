@@ -10,16 +10,26 @@ import jsonschema
 logger = logging.getLogger(__name__)
 
 
+@task(task_display_name="Service Check")
+def is_service_alive():
+    logger.info('Checking Openweathermap.org')
+
+    conn = BaseHook.get_connection("openweathermap")
+
+    url = f"{conn.schema}://{conn.host}:{conn.port}"
+    response = httpx.get(url)
+
+    logger.info(response.status_code)
+    if response.status_code != 301:
+        quit()
+
+
 @task(task_display_name="Scrape Data")
 def scrape_data(query: str, units: str) -> dict:
     """
     Scrapes data from a specified source.
     """
     logger.info("Scraping Data")
-    logger.debug('toto je debug')
-    logger.warning('toto je warning')
-    logger.error('toto je error')
-    logger.critical('toto je critical')
 
     conn = BaseHook.get_connection("openweathermap")
 
@@ -89,7 +99,7 @@ def validate_data(data: dict):
     tags=["weather", "devops", "python", "dt"],
 )
 def main(query: str = "kosice,sk", units: str = "metric"):
-    data = scrape_data(query, units)
+    data = is_service_alive() >> scrape_data(query, units)
     validated_data = validate_data(data)
     csv_entry = process_data(validated_data)
     publish_data(csv_entry)

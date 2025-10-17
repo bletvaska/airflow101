@@ -1,0 +1,46 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "OpenWeatherMap.org",
+    "description": "JSON Schema validator for weather data",
+    "required": [
+        "dt",
+        "name",
+        "main",
+        "sys",
+        "wind"
+    ],
+    "type": "object",
+    "properties": {
+        "dt": {
+            "title": "date time",
+            "description": "Time of measurement",
+            "type": "integer",
+            "minimum": 0
+        },
+        "name": {
+            "type": "string"
+        },
+        "main": {
+            "required": [
+                "temp",
+                "humidity",
+                "pressure"
+            ],
+            "type": "object",
+            "properties": {
+                "temp": {
+                    "type": "number"
+                },
+                "pressure": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "humidity": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                }
+            }
+        }
+    }
+}

@@ -1,10 +1,13 @@
 import json
 from pathlib import Path
+import logging
 
 from airflow.sdk import dag, task, BaseHook
 from pendulum import datetime
 import httpx
 import jsonschema
+
+logger = logging.getLogger(__name__)
 
 
 @task(task_display_name="Scrape Data")
@@ -12,7 +15,11 @@ def scrape_data(query: str, units: str) -> dict:
     """
     Scrapes data from a specified source.
     """
-    print(">> Scraping Data")
+    logger.info("Scraping Data")
+    logger.debug('toto je debug')
+    logger.warning('toto je warning')
+    logger.error('toto je error')
+    logger.critical('toto je critical')
 
     conn = BaseHook.get_connection("openweathermap")
 
@@ -31,7 +38,7 @@ def process_data(data: dict) -> str:
     """
     Processes the scraped data.
     """
-    print(">> Processing Data")
+    logger.info("Processing Data")
 
     return "{};{};{};{};{};{};{};{};{};{};{}".format(
         data["main"]["temp"],
@@ -53,7 +60,7 @@ def publish_data(entry: str):
     """
     Publishes the processed data to a specified destination.
     """
-    print(">> Publishing Data")
+    logger.info("Publishing Data")
 
     path = Path(__file__).parent.parent / "dataset.csv"
     with open(path, "a") as dataset:
@@ -62,7 +69,7 @@ def publish_data(entry: str):
 
 @task(task_display_name="Validate JSON Data")
 def validate_data(data: dict):
-    print(">> Validating JSON Data")
+    logger.info("Validating JSON Data")
 
     path = Path(__file__).parent.parent / "weather.schema.json"
     with open(path, "r") as file:

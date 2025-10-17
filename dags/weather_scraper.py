@@ -10,9 +10,18 @@ import jsonschema
 logger = logging.getLogger(__name__)
 
 
+@task.bash
+def ping_service():
+    logger.info("pinging remote service")
+
+    conn = BaseHook.get_connection("openweathermap")
+    cmd = f"ping -c 1 -w 2 {conn.host}.sk"
+    return cmd
+
+
 @task(task_display_name="Service Check")
 def is_service_alive():
-    logger.info('Checking Openweathermap.org')
+    logger.info("Checking Openweathermap.org")
 
     conn = BaseHook.get_connection("openweathermap")
 
@@ -99,6 +108,8 @@ def validate_data(data: dict):
     tags=["weather", "devops", "python", "dt"],
 )
 def main(query: str = "kosice,sk", units: str = "metric"):
+    ping_service()
+
     data = is_service_alive() >> scrape_data(query, units)
     validated_data = validate_data(data)
     csv_entry = process_data(validated_data)

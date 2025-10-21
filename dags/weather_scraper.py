@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import logging
+from tempfile import mkstemp
 
 from airflow.sdk import dag, task, BaseHook
 import boto3
@@ -113,7 +114,7 @@ def publish_data(entry: str):
         aws_secret_access_key=conn.password
     )
     bucket = minio.Bucket('datasets')
-    path = Path(__file__).parent.parent / "kosice.csv"
+    path = Path(mkstemp()[1])
 
     # download dataset
     try:

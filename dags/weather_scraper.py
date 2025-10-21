@@ -10,12 +10,31 @@ import jsonschema
 logger = logging.getLogger(__name__)
 
 
+@task(task_display_name="Check MinIO Availability")
+def is_minio_alive():
+    """
+    Checks if the MinIO service is alive using the liveness endpoint.
+    """
+    logger.info("Checking MinIO availability")
+    try:
+        conn = BaseHook.get_connection("minio")
+        url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
+        response = httpx.get(url, timeout=5)
+        if response.status_code != 200:
+            logger.error(f"MinIO returned status {response.status_code}: {response.text}")
+            quit()
+    except Exception as e:
+        logger.error("Failed to reach MinIO service")
+        logger.exception(e)
+        quit()
+
+
 @task.bash
 def ping_service():
     logger.info("pinging remote service")
 
     conn = BaseHook.get_connection("openweathermap")
-    cmd = f"ping -c 1 -w 2 {conn.host}.sk"
+    cmd = f"ping -c 1 -w 2 {conn.host}"
     return cmd
 
 
@@ -108,9 +127,9 @@ def validate_data(data: dict):
     tags=["weather", "devops", "python", "dt"],
 )
 def main(query: str = "kosice,sk", units: str = "metric"):
-    ping_service()
-
-    data = is_service_alive() >> scrape_data(query, units)
+    # ping_service()
+    
+    data = [ is_minio_alive(), is_service_alive() ] >> scrape_data(query, units)
     validated_data = validate_data(data)
     csv_entry = process_data(validated_data)
     publish_data(csv_entry)

@@ -3,6 +3,8 @@ from pathlib import Path
 import logging
 
 from airflow.sdk import dag, task, BaseHook
+import boto3
+import botocore
 from pendulum import datetime
 import httpx
 import jsonschema
@@ -21,7 +23,9 @@ def is_minio_alive():
         url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
         response = httpx.get(url, timeout=5)
         if response.status_code != 200:
-            logger.error(f"MinIO returned status {response.status_code}: {response.text}")
+            logger.error(
+                f"MinIO returned status {response.status_code}: {response.text}"
+            )
             quit()
     except Exception as e:
         logger.error("Failed to reach MinIO service")
@@ -100,9 +104,32 @@ def publish_data(entry: str):
     """
     logger.info("Publishing Data")
 
-    path = Path(__file__).parent.parent / "dataset.csv"
+    # create minio object
+    conn = BaseHook.get_connection("minio")
+    minio = boto3.resource(
+        "s3",
+        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password
+    )
+    bucket = minio.Bucket('datasets')
+    path = Path(__file__).parent.parent / "kosice.csv"
+
+    # download dataset
+    try:
+        bucket.download_file('kosice.csv', path)
+    except botocore.exceptions.ClientError:
+        logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
+
+    # append new entry to dataset
     with open(path, "a") as dataset:
         print(entry, file=dataset)
+
+    # upload dataset
+    bucket.upload_file(path, 'kosice.csv')
+
+    # clean
+    path.unlink(True)
 
 
 @task(task_display_name="Validate JSON Data")
@@ -128,8 +155,8 @@ def validate_data(data: dict):
 )
 def main(query: str = "kosice,sk", units: str = "metric"):
     # ping_service()
-    
-    data = [ is_minio_alive(), is_service_alive() ] >> scrape_data(query, units)
+
+    data = [is_minio_alive(), is_service_alive()] >> scrape_data(query, units)
     validated_data = validate_data(data)
     csv_entry = process_data(validated_data)
     publish_data(csv_entry)

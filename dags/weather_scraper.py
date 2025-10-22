@@ -156,26 +156,26 @@ def validate_data(data: dict):
 
     return data
 
+
 @task(task_display_name="Notification")
 def notify(entry: str):
-    logger.info('Notification of client.')
+    logger.info("Notification of client.")
 
     # get ready
-    token = Variable.get('PUSHBULLET_TOKEN')
-    parts = entry.split(';')
-    sunset = pendulum.from_timestamp(1761147163).in_timezone('Europe/Bratislava').to_time_string()
+    token = Variable.get("PUSHBULLET_TOKEN")
+    parts = entry.split(";")
+    sunset = (
+        pendulum.from_timestamp(parts[8])
+        .in_timezone("Europe/Bratislava")
+        .to_time_string()
+    )
 
-    text = f'Aktuálna situácia na mieste {parts[3]}({parts[4]}) je: teplota {parts[0]}°C, vlhkosť {parts[1]}%, tlak {parts[2]}hPa. Celková situácia je {parts[10]}. Slnko dnes zapadá o {sunset}.'
+    text = f"Aktuálna situácia na mieste {parts[3]}({parts[4]}) je: teplota {parts[0]}°C, vlhkosť {parts[1]}%, tlak {parts[2]}hPa. Celková situácia je {parts[10]}. Slnko dnes zapadá o {sunset}."
 
     # send notification
     apprise = Apprise()
-    apprise.add(f'pbul://{token}')
-    apprise.notify(
-        title='Aktuálne počasie',
-        body=text
-    )
-
-
+    apprise.add(f"pbul://{token}")
+    apprise.notify(title="Aktuálne počasie", body=text)
 
 
 @dag(

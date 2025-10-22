@@ -21,19 +21,14 @@ def is_minio_alive():
     Checks if the MinIO service is alive using the liveness endpoint.
     """
     logger.info("Checking MinIO availability")
-    try:
-        conn = BaseHook.get_connection("minio")
-        url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
-        response = httpx.get(url, timeout=5)
-        if response.status_code != 200:
-            logger.error(
-                f"MinIO returned status {response.status_code}: {response.text}"
-            )
-            quit()
-    except Exception as e:
-        logger.error("Failed to reach MinIO service")
-        logger.exception(e)
-        quit()
+
+    conn = BaseHook.get_connection("minio")
+    url = f"{conn.schema}://{conn.host}:{conn.port}/minio/health/live"
+    response = httpx.get(url, timeout=5)
+
+    if response.status_code != HTTPStatus.OK:
+        logger.error("MinIO is unhealthy. Quit.")
+        raise AirflowFailException("MinIO is unhealthy. Quit.")
 
 
 @task.bash
@@ -56,8 +51,9 @@ def is_service_alive():
 
     logger.info(response.status_code)
     if response.status_code != HTTPStatus.MOVED_PERMANENTLY:
-        # quit()
-        raise AirflowFailException(f'Unexpected HTTP status code ({response.status_code})')
+        raise AirflowFailException(
+            f"Unexpected HTTP status code ({response.status_code})"
+        )
 
 
 @task(task_display_name="Scrape Data")
@@ -75,9 +71,11 @@ def scrape_data(query: str, units: str) -> dict:
 
     response = httpx.get(f"{url}/{path}?{params}")
     if response.status_code != HTTPStatus.OK:
-        logger.error(f'HTTP status code is {response.status_code}')
+        logger.error(f"HTTP status code is {response.status_code}")
         # quit
-        raise AirflowFailException(f'Unexpected HTTP status code ({response.status_code})')
+        raise AirflowFailException(
+            f"Unexpected HTTP status code ({response.status_code})"
+        )
 
     data = response.json()
 
@@ -119,14 +117,14 @@ def publish_data(entry: str):
         "s3",
         endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
         aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password
+        aws_secret_access_key=conn.password,
     )
-    bucket = minio.Bucket('datasets')
+    bucket = minio.Bucket("datasets")
     path = Path(mkstemp()[1])
 
     # download dataset
     try:
-        bucket.download_file('kosice.csv', path)
+        bucket.download_file("kosice.csv", path)
     except botocore.exceptions.ClientError:
         logger.warning("Dataset doesn't exist in bucket. Possible first time upload.")
 
@@ -135,7 +133,7 @@ def publish_data(entry: str):
         print(entry, file=dataset)
 
     # upload dataset
-    bucket.upload_file(path, 'kosice.csv')
+    bucket.upload_file(path, "kosice.csv")
 
     # clean
     path.unlink(True)

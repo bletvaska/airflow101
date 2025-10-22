@@ -1,16 +1,22 @@
+# standard packages
 from http import HTTPStatus
 import json
 from pathlib import Path
 import logging
 from tempfile import mkstemp
 
-from airflow.sdk import dag, task, BaseHook
+# third-party packages
+from airflow.sdk import dag, task, BaseHook, Variable
 from airflow.exceptions import AirflowFailException
 import boto3
 import botocore
 from pendulum import datetime
+import pendulum
 import httpx
 import jsonschema
+from apprise import Apprise
+
+# own packages
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +33,7 @@ def is_minio_alive():
     response = httpx.get(url, timeout=5)
 
     if response.status_code != HTTPStatus.OK:
-        logger.error("MinIO is unhealthy. Quit.")
+        logger.error("MinIO is unhealthy. Nothing to do. Quit.")
         raise AirflowFailException("MinIO is unhealthy. Quit.")
 
 
@@ -150,6 +156,27 @@ def validate_data(data: dict):
 
     return data
 
+@task(task_display_name="Notification")
+def notify(entry: str):
+    logger.info('Notification of client.')
+
+    # get ready
+    token = Variable.get('PUSHBULLET_TOKEN')
+    parts = entry.split(';')
+    sunset = pendulum.from_timestamp(1761147163).in_timezone('Europe/Bratislava').to_time_string()
+
+    text = f'Aktuálna situácia na mieste {parts[3]}({parts[4]}) je: teplota {parts[0]}°C, vlhkosť {parts[1]}%, tlak {parts[2]}hPa. Celková situácia je {parts[10]}. Slnko dnes zapadá o {sunset}.'
+
+    # send notification
+    apprise = Apprise()
+    apprise.add(f'pbul://{token}')
+    apprise.notify(
+        title='Aktuálne počasie',
+        body=text
+    )
+
+
+
 
 @dag(
     "weather_scraper",
@@ -167,6 +194,7 @@ def main(query: str = "kosice,sk", units: str = "metric"):
     validated_data = validate_data(data)
     csv_entry = process_data(validated_data)
     publish_data(csv_entry)
+    notify(csv_entry)
 
 
 if __name__ == "__main__":

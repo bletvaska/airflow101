@@ -5,6 +5,7 @@ services:
     ports:
     - 9000:9000
     - 9001:9001
+    restart: always
     volumes:
     - storage:/data
     environment:

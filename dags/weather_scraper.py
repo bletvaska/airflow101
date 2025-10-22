@@ -1,9 +1,11 @@
+from http import HTTPStatus
 import json
 from pathlib import Path
 import logging
 from tempfile import mkstemp
 
 from airflow.sdk import dag, task, BaseHook
+from airflow.exceptions import AirflowFailException
 import boto3
 import botocore
 from pendulum import datetime
@@ -53,8 +55,9 @@ def is_service_alive():
     response = httpx.get(url)
 
     logger.info(response.status_code)
-    if response.status_code != 301:
-        quit()
+    if response.status_code != HTTPStatus.MOVED_PERMANENTLY:
+        # quit()
+        raise AirflowFailException(f'Unexpected HTTP status code ({response.status_code})')
 
 
 @task(task_display_name="Scrape Data")
@@ -71,6 +74,11 @@ def scrape_data(query: str, units: str) -> dict:
     params = f"appid={conn.password}&q={query}&units={units}"
 
     response = httpx.get(f"{url}/{path}?{params}")
+    if response.status_code != HTTPStatus.OK:
+        logger.error(f'HTTP status code is {response.status_code}')
+        # quit
+        raise AirflowFailException(f'Unexpected HTTP status code ({response.status_code})')
+
     data = response.json()
 
     return data

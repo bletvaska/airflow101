@@ -3,8 +3,11 @@
 
 ## Workflow
 
-```
-[ scrape data ] --> [ process data ] --> [ publish data ]
+```mermaid
+flowchart LR
+    A(Scrape Data) -->|Extract| B(Process Data)
+    B -->|Transform| C(Publish  Data)
+    C -->|Load| D[(S3)]
 ```
 
 ```bash

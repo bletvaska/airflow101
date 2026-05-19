@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+from http import HTTPStatus
+
 import httpx
 import click
+from loguru import logger
 
 
 def scrape_data(query: str, units: str, appid: str) -> dict:
@@ -9,23 +12,23 @@ def scrape_data(query: str, units: str, appid: str) -> dict:
 
     @return: A dictionary containing the scraped weather data as JSON (dictionary).
     """
-    print(">> Scraping Data")
+    logger.info("Scraping Data")
 
     url = 'https://api.openweathermap.org/data/2.5/weather'
 
     response = httpx.get(f'{url}?q={query}&appid={appid}&units={units}')
 
-    if response.status_code == 401:
-        print('Error "401 Unauthorized". Please check your API key and try again.')
+    if response.status_code == HTTPStatus.UNAUTHORIZED:
+        logger.error('Error "401 Unauthorized". Please check your API key and try again.')
         quit(1)
 
-    elif response.status_code == 404:
-        print(f'Error "404 Not Found". The city "{query}" was not found. Please check the city name and try again.')
+    elif response.status_code == HTTPStatus.NOT_FOUND:
+        logger.error(f'Error "404 Not Found". The city "{query}" was not found. Please check the city name and try again.')
         quit(1)
 
-    if response.status_code != 200:
-        print(f'Error "{response.status_code}" while fetching data from openweathermap.org')
-        print(response.json()['message'])
+    if response.status_code != HTTPStatus.OK:
+        logger.error(f'Error "{response.status_code}" while fetching data from openweathermap.org')
+        logger.error(response.json()['message'])
         quit(1)
 
     return response.json()
@@ -38,7 +41,7 @@ def process_data(data: dict) -> str:
     @param data: A dictionary containing the scraped weather data as JSON (dictionary).
     @return: A string containing the processed weather data in CSV format.
     """
-    print(">> Processing Data")
+    logger.info("Processing Data")
 
     return "{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
         data['dt'],
@@ -63,8 +66,8 @@ def publish_data(entry: str):
 
     @param entry: A string containing the processed weather data in CSV format.
     """
-    print(">> Publishing Data")
-    print(entry)
+    logger.info("Publishing Data")
+    logger.debug(entry)
 
 
 @click.option('--appid', '-a',

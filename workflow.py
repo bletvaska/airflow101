@@ -6,6 +6,8 @@ import click
 from loguru import logger
 
 
+DATASET_PATH = 'dataset.csv'
+
 def scrape_data(query: str, units: str, appid: str) -> dict:
     """
     Scrape weather data from the openweathermap.org.
@@ -68,7 +70,9 @@ def publish_data(entry: str):
     """
     logger.info("Publishing Data")
 
-    with open('dataset.csv', 'a') as file:
+    with open(DATASET_PATH, 'a') as file:
+        if file.tell() == 0:
+            print('dt,name,country,sunrise,sunset,temp,temp_min,temp_max,humidity,description,main,wind_speed,wind_deg', file=file)
         print(entry, file=file)
 
 

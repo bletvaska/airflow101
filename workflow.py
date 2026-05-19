@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import httpx
+import click
 
 
-def scrape_data() -> dict:
+def scrape_data(query: str) -> dict:
     """
     Scrape weather data from the openweathermap.org.
 
@@ -11,7 +12,7 @@ def scrape_data() -> dict:
     print(">> Scraping Data")
 
     url = 'https://api.openweathermap.org/data/2.5/weather'
-    query = 'kosice'
+    # query = 'kosice'
     appid = '9e547051a2a00f2bf3e17a160063002d'
     units = 'metric'
 
@@ -56,8 +57,10 @@ def publish_data(entry: str):
     print(entry)
 
 
-def main():
-    data = scrape_data()
+@click.argument('query')
+@click.command(help='Download current weather condition in CSV format.')
+def main(query: str):
+    data = scrape_data(query)
     csv_entry = process_data(data)
     publish_data(csv_entry)
 

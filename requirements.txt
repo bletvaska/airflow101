@@ -1,3 +1,4 @@
 httpx==0.28.1
 ipython==9.13.0
 ruff==0.15.13
+click==8.4.0

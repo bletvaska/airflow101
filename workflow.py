@@ -67,7 +67,9 @@ def publish_data(entry: str):
     @param entry: A string containing the processed weather data in CSV format.
     """
     logger.info("Publishing Data")
-    logger.debug(entry)
+
+    with open('dataset.csv', 'a') as file:
+        print(entry, file=file)
 
 
 @click.option('--appid', '-a',

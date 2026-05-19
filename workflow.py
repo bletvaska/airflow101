@@ -3,7 +3,7 @@ import httpx
 import click
 
 
-def scrape_data(query: str) -> dict:
+def scrape_data(query: str, units: str) -> dict:
     """
     Scrape weather data from the openweathermap.org.
 
@@ -14,7 +14,7 @@ def scrape_data(query: str) -> dict:
     url = 'https://api.openweathermap.org/data/2.5/weather'
     # query = 'kosice'
     appid = '9e547051a2a00f2bf3e17a160063002d'
-    units = 'metric'
+    # units = 'metric'
 
     response = httpx.get(f'{url}?q={query}&appid={appid}&units={units}')
 
@@ -57,10 +57,15 @@ def publish_data(entry: str):
     print(entry)
 
 
+@click.option('--units', '-u', 
+    help='Units of measurement. standard, metric and imperial units are available.', 
+    type=click.Choice(['standard', 'metric', 'imperial']), 
+    default='metric'
+)
 @click.argument('query')
 @click.command(help='Download current weather condition in CSV format.')
-def main(query: str):
-    data = scrape_data(query)
+def main(query: str, units: str):
+    data = scrape_data(query, units)
     csv_entry = process_data(data)
     publish_data(csv_entry)
 

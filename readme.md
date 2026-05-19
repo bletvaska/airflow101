@@ -22,3 +22,15 @@ Create virtual environment first:
 ```bash
 $ python -m venv venv/
 ```
+
+Activate environmnet:
+
+```bash
+$ source venv/bin/activate
+```
+
+Install required packages:
+
+```bash
+$ (venv) pip install -r requirements.txt
+```

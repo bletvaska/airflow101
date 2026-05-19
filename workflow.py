@@ -3,7 +3,7 @@ import httpx
 import click
 
 
-def scrape_data(query: str, units: str) -> dict:
+def scrape_data(query: str, units: str, appid: str) -> dict:
     """
     Scrape weather data from the openweathermap.org.
 
@@ -12,11 +12,21 @@ def scrape_data(query: str, units: str) -> dict:
     print(">> Scraping Data")
 
     url = 'https://api.openweathermap.org/data/2.5/weather'
-    # query = 'kosice'
-    appid = '9e547051a2a00f2bf3e17a160063002d'
-    # units = 'metric'
 
     response = httpx.get(f'{url}?q={query}&appid={appid}&units={units}')
+
+    if response.status_code == 401:
+        print('Error "401 Unauthorized". Please check your API key and try again.')
+        quit(1)
+
+    elif response.status_code == 404:
+        print(f'Error "404 Not Found". The city "{query}" was not found. Please check the city name and try again.')
+        quit(1)
+
+    if response.status_code != 200:
+        print(f'Error "{response.status_code}" while fetching data from openweathermap.org')
+        print(response.json()['message'])
+        quit(1)
 
     return response.json()
 
@@ -57,6 +67,11 @@ def publish_data(entry: str):
     print(entry)
 
 
+@click.option('--appid', '-a',
+    help='API key for openweathermap.org. You can get it for free by creating an account on their website.',
+    envvar='WORKFLOW_APPID',
+    # required=True
+)
 @click.option('--units', '-u', 
     help='Units of measurement. standard, metric and imperial units are available.', 
     type=click.Choice(['standard', 'metric', 'imperial']), 
@@ -64,8 +79,8 @@ def publish_data(entry: str):
 )
 @click.argument('query')
 @click.command(help='Download current weather condition in CSV format.')
-def main(query: str, units: str):
-    data = scrape_data(query, units)
+def main(query: str, units: str, appid: str):
+    data = scrape_data(query, units, appid)
     csv_entry = process_data(data)
     publish_data(csv_entry)
 

@@ -3,3 +3,4 @@ ipython==9.13.0
 ruff==0.15.13
 click==8.4.0
 loguru==0.7.3
+apache-airflow==3.2.2

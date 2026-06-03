@@ -90,8 +90,9 @@ def publish_data(entry: str):
     tags=['mirek', 'training', 'dt'],
     catchup=False
 )
-def main():
-    data = scrape_data('kosice,sk', 'metric', '9e547051a2a00f2bf3e17a160063002d')
+def main(query: str = 'kosice,sk', units: str = 'metric', appid: str = '9e547051a2a00f2bf3e17a160063002d'):
+    data = scrape_data(query, units, appid)
+    # data = scrape_data('kosice,sk', 'metric', '9e547051a2a00f2bf3e17a160063002d')
     csv_entry = process_data(data)
     publish_data(csv_entry)
 

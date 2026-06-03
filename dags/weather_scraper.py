@@ -2,10 +2,11 @@ from datetime import datetime
 from http import HTTPStatus
 import logging
 
-from airflow.sdk import dag, task
+from airflow.sdk import dag, task, BaseHook
 import httpx
 
 DATASET_PATH = 'dataset.csv'
+CONNECTION_NAME = 'openweathermap'
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,10 @@ def scrape_data(query: str, units: str, appid: str) -> dict:
     """
     logger.info("Scraping Data")
 
-    url = 'https://api.openweathermap.org/data/2.5/weather'
+    conn = BaseHook.get_connection(CONNECTION_NAME)
+
+    # url = 'https://api.openweathermap.org/data/2.5/weather'
+    url = f'{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather'
 
     response = httpx.get(f'{url}?q={query}&appid={appid}&units={units}')
 

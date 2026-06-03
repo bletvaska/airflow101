@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @task(task_display_name='Scrape Data')
-def scrape_data(query: str, units: str, appid: str) -> dict:
+def scrape_data(query: str) -> dict:
     """
     Scrape weather data from the openweathermap.org.
 
@@ -22,10 +22,15 @@ def scrape_data(query: str, units: str, appid: str) -> dict:
 
     conn = BaseHook.get_connection(CONNECTION_NAME)
 
-    # url = 'https://api.openweathermap.org/data/2.5/weather'
+    # prepare query params and url
     url = f'{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather'
+    params = {
+        'q': query,
+        'units': conn.extra_dejson.get('units'),
+        'appid': conn.password
+    }
 
-    response = httpx.get(f'{url}?q={query}&appid={appid}&units={units}')
+    response = httpx.get(url, params=params)
 
     if response.status_code == HTTPStatus.UNAUTHORIZED:
         logger.error('Error "401 Unauthorized". Please check your API key and try again.')
@@ -94,8 +99,8 @@ def publish_data(entry: str):
     tags=['mirek', 'training', 'dt'],
     catchup=False
 )
-def main(query: str = 'kosice,sk', units: str = 'metric', appid: str = '9e547051a2a00f2bf3e17a160063002d'):
-    data = scrape_data(query, units, appid)
+def main(query: str = 'kosice,sk'):
+    data = scrape_data(query)
     csv_entry = process_data(data)
     publish_data(csv_entry)
 

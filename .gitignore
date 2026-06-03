@@ -1,4 +1,6 @@
 __pycache__/
 venv/
 dataset.csv
-
+logs/
+.env
+*.db

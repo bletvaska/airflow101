@@ -92,9 +92,11 @@ def publish_data(entry: str):
 )
 def main(query: str = 'kosice,sk', units: str = 'metric', appid: str = '9e547051a2a00f2bf3e17a160063002d'):
     data = scrape_data(query, units, appid)
-    # data = scrape_data('kosice,sk', 'metric', '9e547051a2a00f2bf3e17a160063002d')
     csv_entry = process_data(data)
     publish_data(csv_entry)
 
 
-main()
+if __name__ == '__main__':
+    main().test()
+else:
+    main()

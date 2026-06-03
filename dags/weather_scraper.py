@@ -5,6 +5,8 @@ import logging
 from airflow.sdk import dag, task
 import httpx
 
+DATASET_PATH = 'dataset.csv'
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,6 +66,21 @@ def process_data(data: dict) -> str:
     )
 
 
+@task(task_display_name='Publish Data')
+def publish_data(entry: str):
+    """
+    Publish the processed weather data as CSV file.
+
+    @param entry: A string containing the processed weather data in CSV format.
+    """
+    logger.info("Publishing Data")
+
+    with open(DATASET_PATH, 'a') as file:
+        if file.tell() == 0:
+            print('dt,name,country,sunrise,sunset,temp,temp_min,temp_max,humidity,description,main,wind_speed,wind_deg', file=file)
+        print(entry, file=file)
+
+
 @dag(
     'weather_scraper',
     dag_display_name='Weather Scraper',
@@ -75,7 +92,8 @@ def process_data(data: dict) -> str:
 )
 def main():
     data = scrape_data('kosice,sk', 'metric', '9e547051a2a00f2bf3e17a160063002d')
-    process_data(data)
+    csv_entry = process_data(data)
+    publish_data(csv_entry)
 
 
 main()

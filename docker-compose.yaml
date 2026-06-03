@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:18-alpine
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: apache
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+    - db_data:/var/lib/postgresql
+
+volumes:
+  db_data:
+  

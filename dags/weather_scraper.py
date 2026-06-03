@@ -1,9 +1,11 @@
 from datetime import datetime
 from http import HTTPStatus
+import logging
 
 from airflow.sdk import dag, task
-from loguru import logger
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 @task(task_display_name='Scrape Data')
@@ -34,6 +36,34 @@ def scrape_data(query: str, units: str, appid: str) -> dict:
 
     return response.json()
 
+
+@task(task_display_name='Process Data')
+def process_data(data: dict) -> str:
+    """
+    Process and transform the scraped weather data.
+
+    @param data: A dictionary containing the scraped weather data as JSON (dictionary).
+    @return: A string containing the processed weather data in CSV format.
+    """
+    logger.info("Processing Data")
+
+    return "{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
+        data['dt'],
+        data['name'],
+        data['sys']['country'],
+        data['sys']['sunrise'],
+        data['sys']['sunset'],
+        data['main']['temp'],
+        data['main']['temp_min'],
+        data['main']['temp_max'],
+        data['main']['humidity'],
+        data['weather'][0]['description'],
+        data['weather'][0]['main'],
+        data['wind']['speed'],
+        data['wind']['deg'],
+    )
+
+
 @dag(
     'weather_scraper',
     dag_display_name='Weather Scraper',
@@ -44,7 +74,8 @@ def scrape_data(query: str, units: str, appid: str) -> dict:
     catchup=False
 )
 def main():
-    scrape_data('kosice,sk', 'metric', '9e547051a2a00f2bf3e17a160063002d')
+    data = scrape_data('kosice,sk', 'metric', '9e547051a2a00f2bf3e17a160063002d')
+    process_data(data)
 
 
 main()

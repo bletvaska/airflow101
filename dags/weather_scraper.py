@@ -3,6 +3,7 @@ from http import HTTPStatus
 import logging
 
 from airflow.sdk import dag, task, BaseHook
+from airflow.exceptions import AirflowFailException
 import httpx
 
 DATASET_PATH = 'dataset.csv'
@@ -34,16 +35,16 @@ def scrape_data(query: str) -> dict:
 
     if response.status_code == HTTPStatus.UNAUTHORIZED:
         logger.error('Error "401 Unauthorized". Please check your API key and try again.')
-        quit(1)
+        raise AirflowFailException('Error "401 Unauthorized". Please check your API key and try again.')
 
     elif response.status_code == HTTPStatus.NOT_FOUND:
         logger.error(f'Error "404 Not Found". The city "{query}" was not found. Please check the city name and try again.')
-        quit(1)
+        raise AirflowFailException(f'Error "404 Not Found". The city "{query}" was not found. Please check the city name and try again.')
 
     if response.status_code != HTTPStatus.OK:
         logger.error(f'Error "{response.status_code}" while fetching data from openweathermap.org')
         logger.error(response.json()['message'])
-        quit(1)
+        raise AirflowFailException(f'Error "{response.status_code}" while fetching data from openweathermap.org')
 
     return response.json()
 

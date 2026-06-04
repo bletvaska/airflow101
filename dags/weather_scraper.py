@@ -11,11 +11,9 @@ import boto3
 from botocore.exceptions import ClientError
 
 from tasks import is_rustfs_alive
+from constants import SVC_CONN_NAME, STORAGE_CONN_NAME, DATASET_BUCKET
 
-DATASET_PATH = "dataset.csv"
-SVC_CONN_NAME = "openweathermap"
-STORAGE_CONN_NAME = "rustfs"
-DATASET_BUCKET = "mirek"
+
 
 logger = logging.getLogger(__name__)
 

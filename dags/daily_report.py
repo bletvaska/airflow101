@@ -6,8 +6,6 @@ from airflow.sdk import dag, task
 from tasks import is_rustfs_alive
 
 
-STORAGE_CONN_NAME = "rustfs"
-
 logger = logging.getLogger(__name__)
 
 

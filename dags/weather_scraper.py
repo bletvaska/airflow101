@@ -14,7 +14,6 @@ from tasks import is_rustfs_alive
 from constants import SVC_CONN_NAME, STORAGE_CONN_NAME, DATASET_BUCKET
 
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -4,3 +4,4 @@ ruff==0.15.13
 click==8.4.0
 loguru==0.7.3
 apache-airflow==3.2.2
+boto3==1.43.22

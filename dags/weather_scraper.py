@@ -10,10 +10,12 @@ import httpx
 import boto3
 from botocore.exceptions import ClientError
 
+from tasks import is_rustfs_alive
+
 DATASET_PATH = "dataset.csv"
 SVC_CONN_NAME = "openweathermap"
 STORAGE_CONN_NAME = "rustfs"
-DATASET_BUCKET = 'mirek'
+DATASET_BUCKET = "mirek"
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +23,6 @@ logger = logging.getLogger(__name__)
 @task.bash
 def is_service_alive_in_bash():
     return "ping -c 1 -w 2 openweathermap.org"
-
-
-@task(task_display_name="RustFS Healthcheck")
-def is_rustfs_alive():
-    conn = BaseHook.get_connection(STORAGE_CONN_NAME)
-
-    response = httpx.head(f"{conn.schema}://{conn.host}:{conn.port}/health")
-
-    if response.status_code != HTTPStatus.OK:
-        raise AirflowFailException(
-            f"RustFS is unhealthy. Status code: {response.status_code}"
-        )
 
 
 @task(
@@ -148,27 +138,27 @@ def publish_data(entry: str):
     )
     bucket = storage.Bucket(DATASET_BUCKET)
 
-    path = Path(mkstemp(prefix='weather-')[1])
+    path = Path(mkstemp(prefix="weather-")[1])
 
     # download dataset to temporary file
     try:
-        bucket.download_file('dataset.csv', path)
+        bucket.download_file("dataset.csv", path)
     except ClientError:
         logger.warning("Dataset file doesn't exist yet. Possible first time upload")
 
         # add header
-        with open(path, 'w') as file:
+        with open(path, "w") as file:
             print(
-                 "dt,name,country,sunrise,sunset,temp,temp_min,temp_max,humidity,description,main,wind_speed,wind_deg",
-                 file=file,
+                "dt,name,country,sunrise,sunset,temp,temp_min,temp_max,humidity,description,main,wind_speed,wind_deg",
+                file=file,
             )
 
     # append new measurement as line
-    with open(path, 'a') as file:
+    with open(path, "a") as file:
         print(entry, file=file)
 
     # upload dataset
-    bucket.upload_file(path, 'dataset.csv')
+    bucket.upload_file(path, "dataset.csv")
 
     # cleanup
     path.unlink(missing_ok=True)

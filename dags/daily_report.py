@@ -1,29 +1,14 @@
 from datetime import datetime
-from http import HTTPStatus
 import logging
 
-from airflow.sdk import dag, task, BaseHook
-from airflow.sdk.exceptions import AirflowFailException
-import httpx
+from airflow.sdk import dag, task
+
+from tasks import is_rustfs_alive
 
 
 STORAGE_CONN_NAME = "rustfs"
 
 logger = logging.getLogger(__name__)
-
-
-@task(task_display_name="RustFS Healthcheck")
-def is_rustfs_alive():
-    logger.info("RustFS Healthcheck")
-
-    conn = BaseHook.get_connection(STORAGE_CONN_NAME)
-
-    response = httpx.head(f"{conn.schema}://{conn.host}:{conn.port}/health")
-
-    if response.status_code != HTTPStatus.OK:
-        raise AirflowFailException(
-            f"RustFS is unhealthy. Status code: {response.status_code}"
-        )
 
 
 @task(task_display_name="Extract yesterday data")

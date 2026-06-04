@@ -11,6 +11,20 @@ services:
     volumes:
     - db_data:/var/lib/postgresql
 
+  rustfs:
+    image: rustfs/rustfs
+    environment:
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_OBS_LOGGER_LEVEL=info
+      - RUSTFS_ACCESS_KEY=apache
+      - RUSTFS_SECRET_KEY=airflow
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - storage:/data
+
 volumes:
   db_data:
+  storage:
   

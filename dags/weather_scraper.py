@@ -12,6 +12,26 @@ CONNECTION_NAME = 'openweathermap'
 logger = logging.getLogger(__name__)
 
 
+@task(task_display_name='Service Healthcheck')
+def is_service_alive():
+    conn = BaseHook.get_connection(CONNECTION_NAME)
+
+    url = f'{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather'
+
+    params = {
+        'q': 'kosice,sk',
+        'units': conn.extra_dejson.get('units'),
+        'appid': conn.password
+    }
+
+    response = httpx.get(url, params=params)
+
+    if response.status_code != HTTPStatus.OK:
+        raise AirflowFailException(
+            f'Service unavailable. HTTP status code: {response.status_code}'
+        )
+
+
 @task(task_display_name='Scrape Data')
 def scrape_data(query: str) -> dict:
     """
@@ -101,7 +121,7 @@ def publish_data(entry: str):
     catchup=False
 )
 def main(query: str = 'kosice,sk'):
-    data = scrape_data(query)
+    data = is_service_alive() >> scrape_data(query)
     csv_entry = process_data(data)
     publish_data(csv_entry)
 

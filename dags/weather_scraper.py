@@ -1,30 +1,37 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from http import HTTPStatus
 import logging
 
-from airflow.sdk import dag, task, BaseHook
-from airflow.exceptions import AirflowFailException
+from airflow.sdk import dag, task, BaseHook, Variable
+from airflow.sdk.exceptions import AirflowFailException
 import httpx
 
 DATASET_PATH = 'dataset.csv'
-CONNECTION_NAME = 'openweathermap'
+SVC_CONN_NAME = 'openweathermap'
+STORAGE_CONN_NAME = 'rustfs'
 
 logger = logging.getLogger(__name__)
 
+@task.bash
+def is_service_alive_in_bash():
+    return 'ping -c 1 -w 2 openweathermap.org'
 
-@task(task_display_name='Service Healthcheck')
+
+@task(task_display_name='RustFS Healthcheck')
+def is_rustfs_alive():
+    conn = BaseHook.get_connection(STORAGE_CONN_NAME)
+
+    response = httpx.head(f"{conn.schema}://{conn.host}:{conn.port}/health")
+
+    if response.status_code != HTTPStatus.OK:
+        raise AirflowFailException(f"RustFS is unhealthy. Status code: {response.status_code}")
+
+
+@task(task_display_name='Service Healthcheck', retries=3, retry_delay=timedelta(seconds=10))
 def is_service_alive():
-    conn = BaseHook.get_connection(CONNECTION_NAME)
+    conn = BaseHook.get_connection(SVC_CONN_NAME)
 
-    url = f'{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather'
-
-    params = {
-        'q': 'kosice,sk',
-        'units': conn.extra_dejson.get('units'),
-        'appid': conn.password
-    }
-
-    response = httpx.get(url, params=params)
+    response = httpx.head(f'{conn.schema}://{conn.host}:{conn.port}', follow_redirects=True)
 
     if response.status_code != HTTPStatus.OK:
         raise AirflowFailException(
@@ -41,7 +48,7 @@ def scrape_data(query: str) -> dict:
     """
     logger.info("Scraping Data")
 
-    conn = BaseHook.get_connection(CONNECTION_NAME)
+    conn = BaseHook.get_connection(SVC_CONN_NAME)
 
     # prepare query params and url
     url = f'{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather'
@@ -120,8 +127,12 @@ def publish_data(entry: str):
     tags=['mirek', 'training', 'dt'],
     catchup=False
 )
-def main(query: str = 'kosice,sk'):
-    data = is_service_alive() >> scrape_data(query)
+def main(query: str = Variable.get('WEATHER_CITY')):
+    data = [
+        is_service_alive_in_bash(),
+        is_rustfs_alive(),
+        is_service_alive(),
+    ] >> scrape_data(query)
     csv_entry = process_data(data)
     publish_data(csv_entry)
 

@@ -171,7 +171,6 @@ def get_locations():
         return query
 
 
-
 @dag(
     "weather_scraper",
     dag_display_name="Weather Scraper",
@@ -191,16 +190,14 @@ def get_locations():
 )
 def main(): 
     locations = get_locations()
-    print('*******************************************')
-    print(locations)
-    # data = [
-    #     is_service_alive_in_bash(),
-    #     is_rustfs_alive(),
-    #     is_service_alive(),
-    # ] >> scrape_data(query)
-    # csv_entry = process_data(data)
-    # publish_data(csv_entry)
-    pass
+
+    data = [
+        is_service_alive_in_bash(),
+        is_rustfs_alive(),
+        is_service_alive(),
+    ] >> scrape_data.expand(query=locations)
+    csv_entry = process_data.expand(data=data)
+    publish_data.expand(entry=csv_entry)
 
 
 if __name__ == "__main__":

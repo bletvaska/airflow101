@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from tempfile import mkstemp
 
-from airflow.sdk import dag, task, BaseHook, Variable, Param
+from airflow.sdk import dag, task, BaseHook, Variable, Param, get_current_context
 from airflow.sdk.exceptions import AirflowFailException
 import httpx
 import boto3
@@ -160,6 +160,17 @@ def publish_data(entry: str):
     # cleanup
     path.unlink(missing_ok=True)
 
+@task
+def get_locations():
+    context = get_current_context()
+    
+    query = context['params']['query']
+    if query == []:
+        return Variable.get('WEATHER_CITY').splitlines()
+    else:
+        return query
+
+
 
 @dag(
     "weather_scraper",
@@ -169,15 +180,27 @@ def publish_data(entry: str):
     start_date=datetime(2026, 6, 1),
     tags=["mirek", "training", "dt"],
     catchup=False,
+    params={
+        "query": Param(
+            type='array', 
+            default=[], 
+            title='Locations', 
+            description='List of locations. One location per line.'
+        )
+    }
 )
-def main(query: Param = Param(type='array', default=[], title='Locations', description='List of locations. One location per line.')): 
-    data = [
-        is_service_alive_in_bash(),
-        is_rustfs_alive(),
-        is_service_alive(),
-    ] >> scrape_data(query)
-    csv_entry = process_data(data)
-    publish_data(csv_entry)
+def main(): 
+    locations = get_locations()
+    print('*******************************************')
+    print(locations)
+    # data = [
+    #     is_service_alive_in_bash(),
+    #     is_rustfs_alive(),
+    #     is_service_alive(),
+    # ] >> scrape_data(query)
+    # csv_entry = process_data(data)
+    # publish_data(csv_entry)
+    pass
 
 
 if __name__ == "__main__":

@@ -19,6 +19,4 @@ def is_rustfs_alive():
     response = httpx.head(f"{conn.schema}://{conn.host}:{conn.port}/health")
 
     if response.status_code != HTTPStatus.OK:
-        raise AirflowFailException(
-            f"RustFS is unhealthy. Status code: {response.status_code}"
-        )
+        raise AirflowFailException("RustFS is unhealthy.")

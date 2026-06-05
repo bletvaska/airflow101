@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from tempfile import mkstemp
 
-from airflow.sdk import dag, task, BaseHook, Variable
+from airflow.sdk import dag, task, BaseHook, Variable, Param
 from airflow.sdk.exceptions import AirflowFailException
 import httpx
 import boto3
@@ -170,7 +170,7 @@ def publish_data(entry: str):
     tags=["mirek", "training", "dt"],
     catchup=False,
 )
-def main(query: str = Variable.get("WEATHER_CITY")):
+def main(query: Param = Param(type='array', default=[], title='Locations', description='List of locations. One location per line.')): 
     data = [
         is_service_alive_in_bash(),
         is_rustfs_alive(),

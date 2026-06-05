@@ -7,12 +7,12 @@ from tempfile import mkstemp
 from airflow.sdk import dag, task, BaseHook, Variable, Param, get_current_context
 from airflow.sdk.exceptions import AirflowFailException
 import httpx
-import boto3
 from botocore.exceptions import ClientError
 import pendulum
 
 from tasks import is_rustfs_alive
-from constants import SVC_CONN_NAME, STORAGE_CONN_NAME, DATASET_BUCKET
+from constants import SVC_CONN_NAME, DATASET_BUCKET
+from helpers import get_s3
 
 
 logger = logging.getLogger(__name__)
@@ -126,16 +126,8 @@ def publish_data(entry: str):
     """
     logger.info("Publishing Data")
 
-    conn = BaseHook.get_connection(STORAGE_CONN_NAME)
-
-    storage = boto3.resource(
-        "s3",
-        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
-
     # get ready
+    storage = get_s3()
     bucket = storage.Bucket(DATASET_BUCKET)
     path = Path(mkstemp(prefix="weather-")[1])
     parts = entry.split(',')

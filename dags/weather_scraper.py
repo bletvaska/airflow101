@@ -9,6 +9,7 @@ from airflow.sdk.exceptions import AirflowFailException
 import httpx
 import boto3
 from botocore.exceptions import ClientError
+import pendulum
 
 from tasks import is_rustfs_alive
 from constants import SVC_CONN_NAME, STORAGE_CONN_NAME, DATASET_BUCKET
@@ -100,11 +101,11 @@ def process_data(data: dict) -> str:
     logger.info("Processing Data")
 
     return "{},{},{},{},{},{},{},{},{},{},{},{},{}".format(
-        data["dt"],
+        pendulum.from_timestamp(data["dt"]).to_iso8601_string(),
         data["name"],
         data["sys"]["country"],
-        data["sys"]["sunrise"],
-        data["sys"]["sunset"],
+        pendulum.from_timestamp(data["sys"]["sunrise"]).to_iso8601_string(),
+        pendulum.from_timestamp(data["sys"]["sunset"]).to_iso8601_string(),
         data["main"]["temp"],
         data["main"]["temp_min"],
         data["main"]["temp_max"],

@@ -174,7 +174,7 @@ def get_locations():
     schedule="*/20 * * * *",
     start_date=datetime(2026, 6, 1),
     tags=["mirek", "training", "dt"],
-    catchup=False,
+    catchup=True,
     params={
         "query": Param(
             type='array', 

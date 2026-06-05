@@ -7,7 +7,7 @@ from constants import STORAGE_CONN_NAME
 def get_s3():
     conn = BaseHook.get_connection(STORAGE_CONN_NAME)
 
-    return boto3.client(
+    return boto3.resource(
         "s3",
         endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
         aws_access_key_id=conn.login,

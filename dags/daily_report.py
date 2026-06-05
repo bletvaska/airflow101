@@ -49,8 +49,6 @@ def extract_yesterday_data() -> str:
         logger.exception(ex)
 
 
-
-
 @task(task_display_name="Create report")
 def create_report(dataset: str):
     # get max/min/avg temperature/humidity/pressure from yesterday data

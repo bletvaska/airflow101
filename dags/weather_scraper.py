@@ -133,13 +133,16 @@ def publish_data(entry: str):
         aws_access_key_id=conn.login,
         aws_secret_access_key=conn.password,
     )
-    bucket = storage.Bucket(DATASET_BUCKET)
 
+    # get ready
+    bucket = storage.Bucket(DATASET_BUCKET)
     path = Path(mkstemp(prefix="weather-")[1])
+    parts = entry.split(',')
+    dataset_file = f'{parts[1]}-{parts[2]}.csv'.lower()
 
     # download dataset to temporary file
     try:
-        bucket.download_file("dataset.csv", path)
+        bucket.download_file(dataset_file, path)
     except ClientError:
         logger.warning("Dataset file doesn't exist yet. Possible first time upload")
 
@@ -155,7 +158,7 @@ def publish_data(entry: str):
         print(entry, file=file)
 
     # upload dataset
-    bucket.upload_file(path, "dataset.csv")
+    bucket.upload_file(path, dataset_file)
 
     # cleanup
     path.unlink(missing_ok=True)

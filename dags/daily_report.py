@@ -11,11 +11,13 @@ logger = logging.getLogger(__name__)
 
 @task(task_display_name="Extract yesterday data")
 def extract_yesterday_data():
+    # extract ONLY yesterday data from given dataset
     pass
 
 
 @task(task_display_name="Create report")
 def create_report():
+    # get max/min/avg temperature/humidity/pressure from yesterday data
     pass
 
 

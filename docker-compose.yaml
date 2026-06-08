@@ -13,6 +13,7 @@ services:
 
   rustfs:
     image: rustfs/rustfs
+    restart: always
     environment:
       - RUSTFS_CONSOLE_ENABLE=true
       - RUSTFS_OBS_LOGGER_LEVEL=info

@@ -1,10 +1,10 @@
+import logging
 from datetime import datetime, timedelta
 from http import HTTPStatus
-import logging
 from pathlib import Path
 from tempfile import mkstemp
 
-from airflow.sdk import dag, task, BaseHook, Variable, Param, get_current_context
+from airflow.sdk import dag, task, task_group, BaseHook, Variable, Param, get_current_context
 from airflow.sdk.exceptions import AirflowFailException
 import httpx
 from botocore.exceptions import ClientError
@@ -156,7 +156,8 @@ def publish_data(entry: str):
     # cleanup
     path.unlink(missing_ok=True)
 
-@task
+
+@task(task_display_name='Get Locations')
 def get_locations():
     context = get_current_context()
     
@@ -167,6 +168,33 @@ def get_locations():
         return query
 
 
+@task_group(
+    "tg_healthcheck",
+    group_display_name='Healthcheck',
+    tooltip="Healthcheck of external services.",
+)
+def tg_healthcheck():
+    return [
+        is_service_alive_in_bash(),
+        is_rustfs_alive(),
+        is_service_alive(),
+    ]
+
+
+@task_group(
+    "weather_ingestion",
+    group_display_name='Weather Ingestion',
+    tooltip="Retrieve, process and upload weather info.",
+)
+def weather_ingestion():
+    locations = get_locations()
+    data = scrape_data.expand(query=locations)
+    csv_entry = process_data.expand(data=data)
+    publish_data.expand(entry=csv_entry)
+
+    return data
+
+
 @dag(
     "weather_scraper",
     dag_display_name="Weather Scraper",
@@ -174,7 +202,7 @@ def get_locations():
     schedule="*/20 * * * *",
     start_date=datetime(2026, 6, 1),
     tags=["mirek", "training", "dt"],
-    catchup=True,
+    catchup=False,
     params={
         "query": Param(
             type='array', 
@@ -185,15 +213,7 @@ def get_locations():
     }
 )
 def main(): 
-    locations = get_locations()
-
-    data = [
-        is_service_alive_in_bash(),
-        is_rustfs_alive(),
-        is_service_alive(),
-    ] >> scrape_data.expand(query=locations)
-    csv_entry = process_data.expand(data=data)
-    publish_data.expand(entry=csv_entry)
+    tg_healthcheck() >> weather_ingestion()
 
 
 if __name__ == "__main__":

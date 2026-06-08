@@ -6,6 +6,7 @@ from tempfile import mkstemp
 from airflow.sdk import dag, task, get_current_context
 import pandas as pd
 import pendulum
+from pyspark.sql import SparkSession
 
 from tasks import is_rustfs_alive
 from helpers import get_s3
@@ -19,12 +20,12 @@ logger = logging.getLogger(__name__)
 def extract_yesterday_data() -> str:
     # get ready
     storage = get_s3()
+    bucket = storage.bucket(DATASET_BUCKET)
     temp_file = Path(mkstemp(prefix="dataset-")[1])
 
     try:
         # download dataset
-        storage.download_file(
-            DATASET_BUCKET,
+        bucket.download_file(
             "dataset.csv",
             temp_file
         )
@@ -55,6 +56,37 @@ def create_report(dataset: str):
     print(dataset)
 
 
+@task(task_display_name="Extract Yesterday Data with PySpark")
+def pyspark_extract_yesterday_data() -> str:
+    # get ready
+    storage = get_s3()
+    bucket = storage.Bucket(DATASET_BUCKET)
+    temp_file = Path(mkstemp(prefix="dataset-")[1])
+
+    try:
+        # download dataset
+        bucket.download_file(
+            "kosice-sk.csv",
+            temp_file
+        )
+
+        spark = SparkSession.builder \
+                .appName('YesterdayData') \
+                .getOrCreate()
+
+        # create dataframe
+        df = spark.read.csv(str(temp_file), header=True, inferSchema=True)
+
+        # filter data
+        result = df.filter(df['dt'].between('2026-06-07', '2026-06-08'))
+
+        return result
+
+    except Exception as ex:
+        logger.exception(ex)
+
+
+
 @dag(
     "daily_report",
     dag_display_name="Daily report",
@@ -68,6 +100,7 @@ def main():
     dataset = is_rustfs_alive() >> extract_yesterday_data()
     create_report(dataset)
 
+    pyspark_extract_yesterday_data()
 
 if __name__ == "__main__":
     main().test(logical_date=pendulum.parse("2026-06-03 00:00:00+00:00"))

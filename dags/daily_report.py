@@ -74,9 +74,9 @@ def pyspark_extract_yesterday_data() -> str:
         df = spark.read.csv(str(temp_file), header=True, inferSchema=True)
 
         # filter data
-        result = df.filter(df['dt'].between('2026-06-07', '2026-06-08'))
+        rows = df.filter(df['dt'].between('2026-06-07', '2026-06-08')).collect()
 
-        return result
+        return [ row.asDict() for row in rows ]
 
     except Exception as ex:
         logger.exception(ex)

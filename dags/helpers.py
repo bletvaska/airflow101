@@ -18,6 +18,6 @@ def get_s3():
 
 def get_spark() -> SparkSession:
     return SparkSession.builder \
-        .appName('YesterdayData') \
+        .appName('Yesterday Data') \
         .getOrCreate()
 

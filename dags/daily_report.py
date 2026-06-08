@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 @task(task_display_name="Extract yesterday data")
 def extract_yesterday_data() -> str:
     # get ready
-    spark = get_spark()
     storage = get_s3()
     bucket = storage.Bucket(DATASET_BUCKET)
     temp_file = Path(mkstemp(prefix="dataset-")[1])
@@ -59,6 +58,7 @@ def create_report(dataset: str):
 @task(task_display_name="Extract Yesterday Data with PySpark")
 def pyspark_extract_yesterday_data() -> str:
     # get ready
+    spark = get_spark()
     storage = get_s3()
     bucket = storage.Bucket(DATASET_BUCKET)
     temp_file = Path(mkstemp(prefix="dataset-")[1])
@@ -69,10 +69,6 @@ def pyspark_extract_yesterday_data() -> str:
             "kosice-sk.csv",
             temp_file
         )
-
-        spark = SparkSession.builder \
-                .appName('YesterdayData') \
-                .getOrCreate()
 
         # create dataframe
         df = spark.read.csv(str(temp_file), header=True, inferSchema=True)

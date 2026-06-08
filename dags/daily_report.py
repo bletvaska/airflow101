@@ -6,10 +6,9 @@ from tempfile import mkstemp
 from airflow.sdk import dag, task, get_current_context
 import pandas as pd
 import pendulum
-from pyspark.sql import SparkSession
 
 from tasks import is_rustfs_alive
-from helpers import get_s3
+from helpers import get_s3, get_spark
 from constants import DATASET_BUCKET
 
 
@@ -19,14 +18,15 @@ logger = logging.getLogger(__name__)
 @task(task_display_name="Extract yesterday data")
 def extract_yesterday_data() -> str:
     # get ready
+    spark = get_spark()
     storage = get_s3()
-    bucket = storage.bucket(DATASET_BUCKET)
+    bucket = storage.Bucket(DATASET_BUCKET)
     temp_file = Path(mkstemp(prefix="dataset-")[1])
 
     try:
         # download dataset
         bucket.download_file(
-            "dataset.csv",
+            "kosice-sk.csv",
             temp_file
         )
 

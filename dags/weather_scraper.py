@@ -1,15 +1,34 @@
 import json
 import logging
+from http import HTTPStatus
 
 import httpx
 from airflow.sdk import BaseHook, Variable, dag, task
+from airflow.sdk.exceptions import AirflowFailException
 from jsonschema import validate
 from pendulum import datetime, from_timestamp
+from sh import ping
 
 from constants import DATA_PATH
 
 
 logger = logging.getLogger(__name__)
+
+
+@task.bash
+def is_service_alive():
+    logger.info("Checking status of the service")
+
+    conn = BaseHook.get_connection("openweathermap")
+    return f'ping -c 1 -w 2 {conn.host}'
+
+
+@task
+def is_service_alive_2():
+    logger.info("Checking status of the service with sh module")
+
+    conn = BaseHook.get_connection("openweathermap")
+    ping('-c', '1', conn.host, _timeout=2)
 
 
 @task
@@ -28,6 +47,11 @@ def scraping_data(query: str) -> dict:
     }
 
     response = httpx.get(url, params=params)
+
+    if response.status_code != HTTPStatus.OK:
+        logger.warning('Something wrong happend.')
+        raise AirflowFailException('ta daco nedobre')
+
     return response.json()
 
 
@@ -89,7 +113,7 @@ def publishing_data(line: str):
     catchup=False,
 )
 def main(query: str = Variable.get("weather_city")):
-    data = scraping_data(query)
+    data = is_service_alive_2() >> scraping_data(query)
     valid_data = validate_data(data)
     csv_entry = processing_data(valid_data)
     publishing_data(csv_entry)

@@ -30,6 +30,8 @@ def is_service_alive_2():
     conn = BaseHook.get_connection("openweathermap")
     ping('-c', '1', conn.host, _timeout=2)
 
+    raise NameError('ta ja neznam take meno')
+
 
 @task
 def scraping_data(query: str) -> dict:
@@ -113,7 +115,10 @@ def publishing_data(line: str):
     catchup=False,
 )
 def main(query: str = Variable.get("weather_city")):
-    data = is_service_alive_2() >> scraping_data(query)
+    data = [ 
+        is_service_alive(),
+        is_service_alive_2()
+     ] >> scraping_data(query)
     valid_data = validate_data(data)
     csv_entry = processing_data(valid_data)
     publishing_data(csv_entry)

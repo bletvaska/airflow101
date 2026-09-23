@@ -1,0 +1,44 @@
+{
+  "coord": {
+    "lon": 19.3075,
+    "lat": 49.0748
+  },
+  "weather": [
+    {
+      "id": 804,
+      "main": "Clouds",
+      "description": "overcast clouds",
+      "icon": "04d"
+    }
+  ],
+  "base": "stations",
+  "main": {
+    "temp": -1118.77,
+    "feels_like": 7.25,
+    "temp_min": 8.77,
+    "temp_max": 8.77,
+    "pressure": 1024,
+    "humidity": 91,
+    "sea_level": 1024,
+    "grnd_level": 938
+  },
+  "visibility": 10000,
+  "wind": {
+    "speed": 2.67,
+    "deg": 356,
+    "gust": 7.38
+  },
+  "clouds": {
+    "all": 90
+  },
+  "dt": 1790148933,
+  "sys": {
+    "country": "SK",
+    "sunrise": 1790137817,
+    "sunset": 1790181614
+  },
+  "timezone": 7200,
+  "id": 3057789,
+  "name": "Ružomberok",
+  "cod": 200
+}

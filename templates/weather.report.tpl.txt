@@ -1,7 +1,0 @@
-Weather report
-
-Max Temperature: {{ tempMax }}°C
-Min Temperature: {{ tempMin }}°C
-
-Max Humidity: {{ humidityMax }}%
-Min Humidity: {{ humidityMin }}%

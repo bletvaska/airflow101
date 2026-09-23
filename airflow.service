@@ -1,0 +1,22 @@
+[Unit]
+Description=Apache Airflow (standalone)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+Environment=AIRFLOW_HOME=/home/ubuntu/airflow
+Environment=PATH=/home/ubuntu/venv/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=/home/ubuntu/airflow
+ExecStart=/home/ubuntu/venv/bin/airflow standalone
+
+Restart=on-failure
+RestartSec=5
+
+KillMode=control-group
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

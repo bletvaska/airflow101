@@ -1,6 +1,7 @@
 import json
 import logging
 from http import HTTPStatus
+from datetime import timedelta
 
 import httpx
 from airflow.sdk import BaseHook, Variable, dag, task
@@ -23,7 +24,7 @@ def is_service_alive():
     return f'ping -c 1 -w 2 {conn.host}'
 
 
-@task
+@task(retries=3, retry_delay=timedelta(seconds=10))
 def is_service_alive_2():
     logger.info("Checking status of the service with sh module")
 
@@ -33,7 +34,7 @@ def is_service_alive_2():
     raise NameError('ta ja neznam take meno')
 
 
-@task
+@task(task_display_name='Scrape Data')
 def scraping_data(query: str) -> dict:
     """
     Scrapes the data from openweathermap.org
@@ -57,7 +58,7 @@ def scraping_data(query: str) -> dict:
     return response.json()
 
 
-@task
+@task(task_display_name='Validate Data')
 def validate_data(json_data: dict) -> dict:
     """
     validate the downloaded data
@@ -72,7 +73,7 @@ def validate_data(json_data: dict) -> dict:
     return json_data
 
 
-@task
+@task(task_display_name='Process Data')
 def processing_data(json_data: dict) -> str:
     """
     Process the downloaded data
@@ -93,7 +94,7 @@ def processing_data(json_data: dict) -> str:
     )
 
 
-@task
+@task(task_display_name='Publish Data')
 def publishing_data(line: str):
     """
     Persist the data

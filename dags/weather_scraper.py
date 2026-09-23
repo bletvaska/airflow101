@@ -15,6 +15,16 @@ from constants import DATA_PATH
 
 logger = logging.getLogger(__name__)
 
+@task(task_display_name='S3 Healthcheck')
+def is_rustfs_alive():
+    conn = BaseHook.get_connection("s3")
+    url = f"{conn.schema}://{conn.host}:{conn.port}/health"
+
+    response = httpx.head(url)
+    if response.status_code != HTTPStatus.OK:
+            logger.warning('Something wrong happend.')
+            raise AirflowFailException('ta daco nedobre')
+
 
 @task.bash
 def is_service_alive():
@@ -30,8 +40,6 @@ def is_service_alive_2():
 
     conn = BaseHook.get_connection("openweathermap")
     ping('-c', '1', conn.host, _timeout=2)
-
-    raise NameError('ta ja neznam take meno')
 
 
 @task(task_display_name='Scrape Data')
@@ -117,6 +125,7 @@ def publishing_data(line: str):
 )
 def main(query: str = Variable.get("weather_city")):
     data = [ 
+        is_rustfs_alive(),
         is_service_alive(),
         is_service_alive_2()
      ] >> scraping_data(query)

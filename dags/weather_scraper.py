@@ -1,4 +1,5 @@
 import json
+import logging
 
 import httpx
 from airflow.sdk import BaseHook, Variable, dag, task
@@ -8,12 +9,15 @@ from pendulum import datetime, from_timestamp
 from constants import DATA_PATH
 
 
+logger = logging.getLogger(__name__)
+
+
 @task
 def scraping_data(query: str) -> dict:
     """
     Scrapes the data from openweathermap.org
     """
-    print(">> Scraping Data")
+    logger.info("Scraping Data")
 
     conn = BaseHook.get_connection("openweathermap")
     url = f"{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather"
@@ -32,7 +36,7 @@ def validate_data(json_data: dict) -> dict:
     """
     validate the downloaded data
     """
-    print(">> Validating data")
+    logger.info("Validating data")
 
     with open(DATA_PATH / "openweathermap.schema.json", "r") as file:
         schema = json.load(file)
@@ -47,7 +51,7 @@ def processing_data(json_data: dict) -> str:
     """
     Process the downloaded data
     """
-    print(">> Processing Data")
+    logger.info("Processing Data")
 
     # 'kedy;mesto;krajina;teplota;vlhkost;tlak;rychlost vetra;smer vetra'
     dt = json_data["dt"]
@@ -68,7 +72,7 @@ def publishing_data(line: str):
     """
     Persist the data
     """
-    print(">> Publishing Data")
+    logger.info("Publishing Data")
 
     with open(DATA_PATH / "dataset.csv", mode="a") as dataset:
         print(line, file=dataset)

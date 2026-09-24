@@ -5,7 +5,6 @@ from datetime import timedelta
 import tempfile
 from pathlib import Path
 
-import boto3
 from botocore.exceptions import ClientError
 import httpx
 from airflow.sdk import BaseHook, Variable, dag, task, task_group
@@ -14,9 +13,10 @@ from jsonschema import validate
 from pendulum import datetime, from_timestamp
 from sh import ping
 
-from constants import DATA_PATH, WEATHER_CONN, S3_CONN, BUCKET_NAME, DATASET_FILE
+from constants import DATA_PATH, WEATHER_CONN, BUCKET_NAME, DATASET_FILE
 from assets import WEATHER_DATA
 from tasks import is_rustfs_alive
+from helpers import get_storage
 
 
 logger = logging.getLogger(__name__)
@@ -108,13 +108,7 @@ def publishing_data(line: str):
     """
     logger.info("Publishing Data")
 
-    conn = BaseHook.get_connection(S3_CONN)
-    storage = boto3.resource(
-        "s3",
-        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
+    storage = get_storage()
 
     bucket = storage.Bucket(BUCKET_NAME)
 

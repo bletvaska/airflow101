@@ -11,6 +11,7 @@ from botocore.exceptions import ClientError
 
 from tasks import is_rustfs_alive
 from constants import BUCKET_NAME, DATASET_FILE, S3_CONN
+from helpers import get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +22,8 @@ def build_report():
 
     # stiahni dataset
     # (ak sa nepodarilo, tak skonci s chybou)
-    conn = BaseHook.get_connection(S3_CONN)
-    storage = boto3.resource(
-        "s3",
-        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
+    storage = get_storage()
+
 
     bucket = storage.Bucket(BUCKET_NAME)
 

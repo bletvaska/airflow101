@@ -9,9 +9,9 @@ from tasks import is_rustfs_alive
 logger = logging.getLogger(__name__)
 
 
-@task
-def ping():
-    logger.info("-------------------------> PING")
+@task(task_display_name="Build Report")
+def build_report():
+    logger.info("Building Report")
 
 
 @dag(
@@ -25,7 +25,7 @@ def ping():
     schedule=[WEATHER_DATA],
 )
 def main():
-    is_rustfs_alive() >> ping()
+    is_rustfs_alive() >> build_report()
 
 
 main()

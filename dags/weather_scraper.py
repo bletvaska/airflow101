@@ -2,7 +2,11 @@ import json
 import logging
 from http import HTTPStatus
 from datetime import timedelta
+import tempfile
+from pathlib import Path
 
+import boto3
+from botocore.exceptions import ClientError
 import httpx
 from airflow.sdk import BaseHook, Variable, dag, task, task_group
 from airflow.sdk.exceptions import AirflowFailException
@@ -10,7 +14,7 @@ from jsonschema import validate
 from pendulum import datetime, from_timestamp
 from sh import ping
 
-from constants import DATA_PATH, WEATHER_CONN, S3_CONN
+from constants import DATA_PATH, WEATHER_CONN, S3_CONN, BUCKET_NAME, DATASET_FILE
 
 
 logger = logging.getLogger(__name__)
@@ -102,15 +106,41 @@ def processing_data(json_data: dict) -> str:
     )
 
 
-@task(task_display_name='Publish Data')
+@task(
+    task_display_name='Publish Data',
+)
 def publishing_data(line: str):
     """
     Persist the data
     """
     logger.info("Publishing Data")
 
-    with open(DATA_PATH / "dataset.csv", mode="a") as dataset:
-        print(line, file=dataset)
+    conn = BaseHook.get_connection(S3_CONN)
+    storage = boto3.resource(
+        's3',
+        endpoint_url= f"{conn.schema}://{conn.host}:{conn.port}",
+        aws_access_key_id= conn.login,
+        aws_secret_access_key= conn.password
+        )
+
+    bucket = storage.Bucket(BUCKET_NAME)
+
+    try:
+        path = Path(tempfile.mkstemp()[1])
+
+        try:
+            bucket.download_file(DATASET_FILE, path)
+        except ClientError as ex:
+            logger.warning('Dataset file not found. Probably first dataset upload.')
+            with open(path, 'w') as file:
+                print('dt;name;country;temp;humidity;pressure;wind speed;wind angle', file=file)
+
+        with open(path, 'a') as file:
+            print(line, file=file)
+
+        bucket.upload_file(path, DATASET_FILE)
+    finally:
+        path.unlink(True)
 
 
 @task_group(

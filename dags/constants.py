@@ -10,3 +10,7 @@ DATA_PATH = path / "data"
 # conn names
 WEATHER_CONN = "openweathermap"
 S3_CONN = "s3"
+
+BUCKET_NAME = 'mirek'
+
+DATASET_FILE = "dataset.csv"

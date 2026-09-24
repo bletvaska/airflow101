@@ -15,6 +15,7 @@ from pendulum import datetime, from_timestamp
 from sh import ping
 
 from constants import DATA_PATH, WEATHER_CONN, S3_CONN, BUCKET_NAME, DATASET_FILE
+from assets import WEATHER_DATA
 
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,7 @@ def processing_data(json_data: dict) -> str:
 
 @task(
     task_display_name='Publish Data',
+    outlets=[ WEATHER_DATA ],
 )
 def publishing_data(line: str):
     """

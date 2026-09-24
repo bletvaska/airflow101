@@ -10,14 +10,14 @@ from jsonschema import validate
 from pendulum import datetime, from_timestamp
 from sh import ping
 
-from constants import DATA_PATH
+from constants import DATA_PATH, WEATHER_CONN, S3_CONN
 
 
 logger = logging.getLogger(__name__)
 
 @task(task_display_name='S3 Healthcheck')
 def is_rustfs_alive():
-    conn = BaseHook.get_connection("s3")
+    conn = BaseHook.get_connection(S3_CONN)
     url = f"{conn.schema}://{conn.host}:{conn.port}/health"
 
     response = httpx.head(url)
@@ -30,7 +30,7 @@ def is_rustfs_alive():
 def is_service_alive():
     logger.info("Checking status of the service")
 
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(WEATHER_CONN)
     return f'ping -c 1 -w 2 {conn.host}'
 
 
@@ -38,7 +38,7 @@ def is_service_alive():
 def is_service_alive_2():
     logger.info("Checking status of the service with sh module")
 
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(WEATHER_CONN)
     ping('-c', '1', conn.host, _timeout=2)
 
 
@@ -49,7 +49,7 @@ def scraping_data(query: str) -> dict:
     """
     logger.info("Scraping Data")
 
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(WEATHER_CONN)
     url = f"{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather"
     params = {
         "q": query,

@@ -1,10 +1,16 @@
 import logging
+from pathlib import Path
+import tempfile
 
-from airflow.sdk import dag, task
+from airflow.sdk import dag, task, BaseHook
+from airflow.exceptions import AirflowFailException
 from assets import WEATHER_DATA
 from pendulum import datetime
+import boto3
+from botocore.exceptions import ClientError
 
 from tasks import is_rustfs_alive
+from constants import BUCKET_NAME, DATASET_FILE, S3_CONN
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +18,35 @@ logger = logging.getLogger(__name__)
 @task(task_display_name="Build Report")
 def build_report():
     logger.info("Building Report")
+
+    # stiahni dataset
+    # (ak sa nepodarilo, tak skonci s chybou)
+    conn = BaseHook.get_connection(S3_CONN)
+    storage = boto3.resource(
+        "s3",
+        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password,
+    )
+
+    bucket = storage.Bucket(BUCKET_NAME)
+
+    try:
+        path = Path(tempfile.mkstemp()[1])
+
+        try:
+            bucket.download_file(DATASET_FILE, path)
+        except ClientError as ex:
+            logger.warning("Dataset file not found. Nothing to do.")
+            raise AirflowFailException("Dataset file not found. Nothing to do.")
+
+        # magic
+
+
+    finally:
+        # clean up
+        # (stiahnuty subor sa zmaze)
+        path.unlink(True)
 
 
 @dag(

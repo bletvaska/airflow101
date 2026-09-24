@@ -1,14 +1,10 @@
 import logging
-from http import HTTPStatus
 
-import httpx
-from airflow.sdk import dag, task, BaseHook
-from airflow.sdk.exceptions import AirflowFailException
+from airflow.sdk import dag, task
+from assets import WEATHER_DATA
 from pendulum import datetime
 
-from assets import WEATHER_DATA
-from constants import S3_CONN
-
+from tasks import is_rustfs_alive
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +12,6 @@ logger = logging.getLogger(__name__)
 @task
 def ping():
     logger.info("-------------------------> PING")
-
-
-
 
 
 @dag(

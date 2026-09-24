@@ -16,19 +16,10 @@ from sh import ping
 
 from constants import DATA_PATH, WEATHER_CONN, S3_CONN, BUCKET_NAME, DATASET_FILE
 from assets import WEATHER_DATA
+from tasks import is_rustfs_alive
 
 
 logger = logging.getLogger(__name__)
-
-@task(task_display_name='S3 Healthcheck')
-def is_rustfs_alive():
-    conn = BaseHook.get_connection(S3_CONN)
-    url = f"{conn.schema}://{conn.host}:{conn.port}/health"
-
-    response = httpx.head(url)
-    if response.status_code != HTTPStatus.OK:
-            logger.warning('Something wrong happend.')
-            raise AirflowFailException('ta daco nedobre')
 
 
 @task.bash
@@ -36,7 +27,7 @@ def is_service_alive():
     logger.info("Checking status of the service")
 
     conn = BaseHook.get_connection(WEATHER_CONN)
-    return f'ping -c 1 -w 2 {conn.host}'
+    return f"ping -c 1 -w 2 {conn.host}"
 
 
 @task(retries=3, retry_delay=timedelta(seconds=10))
@@ -44,10 +35,10 @@ def is_service_alive_2():
     logger.info("Checking status of the service with sh module")
 
     conn = BaseHook.get_connection(WEATHER_CONN)
-    ping('-c', '1', conn.host, _timeout=2)
+    ping("-c", "1", conn.host, _timeout=2)
 
 
-@task(task_display_name='Scrape Data')
+@task(task_display_name="Scrape Data")
 def scraping_data(query: str) -> dict:
     """
     Scrapes the data from openweathermap.org
@@ -65,13 +56,13 @@ def scraping_data(query: str) -> dict:
     response = httpx.get(url, params=params)
 
     if response.status_code != HTTPStatus.OK:
-        logger.warning('Something wrong happend.')
-        raise AirflowFailException('ta daco nedobre')
+        logger.warning("Something wrong happend.")
+        raise AirflowFailException("ta daco nedobre")
 
     return response.json()
 
 
-@task(task_display_name='Validate Data')
+@task(task_display_name="Validate Data")
 def validate_data(json_data: dict) -> dict:
     """
     validate the downloaded data
@@ -86,7 +77,7 @@ def validate_data(json_data: dict) -> dict:
     return json_data
 
 
-@task(task_display_name='Process Data')
+@task(task_display_name="Process Data")
 def processing_data(json_data: dict) -> str:
     """
     Process the downloaded data
@@ -108,8 +99,8 @@ def processing_data(json_data: dict) -> str:
 
 
 @task(
-    task_display_name='Publish Data',
-    outlets=[ WEATHER_DATA ],
+    task_display_name="Publish Data",
+    outlets=[WEATHER_DATA],
 )
 def publishing_data(line: str):
     """
@@ -119,11 +110,11 @@ def publishing_data(line: str):
 
     conn = BaseHook.get_connection(S3_CONN)
     storage = boto3.resource(
-        's3',
-        endpoint_url= f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id= conn.login,
-        aws_secret_access_key= conn.password
-        )
+        "s3",
+        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password,
+    )
 
     bucket = storage.Bucket(BUCKET_NAME)
 
@@ -133,11 +124,14 @@ def publishing_data(line: str):
         try:
             bucket.download_file(DATASET_FILE, path)
         except ClientError as ex:
-            logger.warning('Dataset file not found. Probably first dataset upload.')
-            with open(path, 'w') as file:
-                print('dt;name;country;temp;humidity;pressure;wind speed;wind angle', file=file)
+            logger.warning("Dataset file not found. Probably first dataset upload.")
+            with open(path, "w") as file:
+                print(
+                    "dt;name;country;temp;humidity;pressure;wind speed;wind angle",
+                    file=file,
+                )
 
-        with open(path, 'a') as file:
+        with open(path, "a") as file:
             print(line, file=file)
 
         bucket.upload_file(path, DATASET_FILE)
@@ -146,21 +140,18 @@ def publishing_data(line: str):
 
 
 @task_group(
-    group_id='tg_healthcheck',
-    group_display_name='Healthcheck',
-    tooltip='Healthcheck of external services'
+    group_id="tg_healthcheck",
+    group_display_name="Healthcheck",
+    tooltip="Healthcheck of external services",
 )
 def tg_healthcheck():
-    return [ 
-        is_rustfs_alive(),
-        is_service_alive(),
-        is_service_alive_2()
-     ]
+    return [is_rustfs_alive(), is_service_alive(), is_service_alive_2()]
+
 
 @task_group(
-    'tg_weather_ingestion',
-    group_display_name='Weather Ingestion',
-    tooltip = 'Retrieve, process and upload weather info.'
+    "tg_weather_ingestion",
+    group_display_name="Weather Ingestion",
+    tooltip="Retrieve, process and upload weather info.",
 )
 def tg_weather_ingestion(query: str):
     data = scraping_data(query)

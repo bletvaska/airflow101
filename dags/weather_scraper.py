@@ -4,7 +4,7 @@ from http import HTTPStatus
 from datetime import timedelta
 
 import httpx
-from airflow.sdk import BaseHook, Variable, dag, task
+from airflow.sdk import BaseHook, Variable, dag, task, task_group
 from airflow.sdk.exceptions import AirflowFailException
 from jsonschema import validate
 from pendulum import datetime, from_timestamp
@@ -113,6 +113,30 @@ def publishing_data(line: str):
         print(line, file=dataset)
 
 
+@task_group(
+    group_id='tg_healthcheck',
+    group_display_name='Healthcheck',
+    tooltip='Healthcheck of external services'
+)
+def tg_healthcheck():
+    return [ 
+        is_rustfs_alive(),
+        is_service_alive(),
+        is_service_alive_2()
+     ]
+
+@task_group(
+    'tg_weather_ingestion',
+    group_display_name='Weather Ingestion',
+    tooltip = 'Retrieve, process and upload weather info.'
+)
+def tg_weather_ingestion(query: str):
+    data = scraping_data(query)
+    valid_data = validate_data(data)
+    csv_entry = processing_data(valid_data)
+    publishing_data(csv_entry)
+
+
 @dag(
     "weather_scraper",
     dag_display_name="Weather Scraper",
@@ -124,14 +148,7 @@ def publishing_data(line: str):
     catchup=False,
 )
 def main(query: str = Variable.get("weather_city")):
-    data = [ 
-        is_rustfs_alive(),
-        is_service_alive(),
-        is_service_alive_2()
-     ] >> scraping_data(query)
-    valid_data = validate_data(data)
-    csv_entry = processing_data(valid_data)
-    publishing_data(csv_entry)
+    tg_healthcheck() >> tg_weather_ingestion(query)
 
 
 if __name__ == "__main__":

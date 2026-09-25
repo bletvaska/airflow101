@@ -5,10 +5,11 @@ from datetime import timedelta
 import tempfile
 from pathlib import Path
 
+from apprise import Apprise
 from botocore.exceptions import ClientError
 import httpx
 from airflow.sdk import BaseHook, Variable, dag, task, task_group, Param, get_current_context
-from airflow.sdk.exceptions import AirflowFailException
+from airflow.sdk.exceptions import AirflowFailException, AirflowSkipException
 from jsonschema import validate
 from pendulum import datetime, from_timestamp
 from sh import ping
@@ -54,6 +55,9 @@ def scraping_data(query: str) -> dict:
     }
 
     response = httpx.get(url, params=params)
+
+    # if response.status_code != HTTPStatus.NOT_FOUND:
+    #     raise AirflowSkipException("Location Not Found.")
 
     if response.status_code != HTTPStatus.OK:
         logger.warning("Something wrong happend.")
@@ -151,7 +155,9 @@ def tg_weather_ingestion(query: str):
     data = scraping_data(query)
     valid_data = validate_data(data)
     csv_entry = processing_data(valid_data)
-    publishing_data(csv_entry)
+    publishing_data(csv_entry) 
+
+    valid_data >> notify(query)
 
 
 @task
@@ -164,6 +170,24 @@ def get_locations() -> list:
 
     # from pprint import pprint
     # pprint(context)
+
+
+@task(
+    task_display_name="Failure Notification",
+    trigger_rule="one_failed"
+)
+def notify(query: str):
+    apprise = Apprise()
+
+    # add receivers
+    for receiver in Variable.get('weather_notifications_receivers').split():
+        apprise.add(receiver)
+
+    # notify receivers
+    apprise.notify(
+        title='Failure',
+        body=f'Ziskavanie dat pre lokaciu "{query}" zlyhalo.'
+    )
 
 
 @dag(
@@ -186,21 +210,13 @@ def get_locations() -> list:
 )
 def main():
     locations = get_locations()
-
-    # .expand(query=locations)
-    # .partial()
-
     tg_healthcheck() >> tg_weather_ingestion.expand(query=locations)
     
-    #scraping_data.expand(query=locations)
-    #valid_data = validate_data.expand(json_data=data)
+    # data = scraping_data.expand(query=locations)
+    # valid_data = validate_data.expand(json_data=data)
     # csv_entry = processing_data(valid_data)
     # publishing_data(csv_entry)
     
-    
-    
-    
-
 
 
 if __name__ == "__main__":

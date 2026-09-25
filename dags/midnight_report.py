@@ -61,7 +61,7 @@ def create_report():
         bucket.put_object(
             Key=MIDNIGHT_REPORT,
             Body=report.encode('utf-8'),
-            ContextType="text/plain; charset=utf-8"
+            ContentType="text/plain; charset=utf-8"
         )
 
     finally:

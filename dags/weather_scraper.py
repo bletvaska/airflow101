@@ -7,7 +7,7 @@ from pathlib import Path
 
 from botocore.exceptions import ClientError
 import httpx
-from airflow.sdk import BaseHook, Variable, dag, task, task_group
+from airflow.sdk import BaseHook, Variable, dag, task, task_group, Param
 from airflow.sdk.exceptions import AirflowFailException
 from jsonschema import validate
 from pendulum import datetime, from_timestamp
@@ -163,9 +163,18 @@ def tg_weather_ingestion(query: str):
     start_date=datetime(2026, 9, 22),
     end_date=datetime(2026, 9, 30),
     catchup=False,
+    params={
+        'query': Param(
+            default=Variable.get('weather_city').split(),
+            type='array',
+            title='Locations',
+            description='List of locations. One location per line.'
+        )
+    }
 )
-def main(query: str = Variable.get("weather_city")):
-    tg_healthcheck() >> tg_weather_ingestion(query)
+def main():
+    tg_healthcheck() # >> tg_weather_ingestion(query)
+
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import csv
 import logging
 from pathlib import Path
 import tempfile
@@ -44,14 +45,17 @@ def create_report():
         # load template
         template = env.get_template('midnight-report.tpl.j2')
 
+        # create model
         model = {
             'datetime': pendulum.now().to_iso8601_string(),
-            'data': [
-                {'dt': 'dnes', 'name': 'kosice', 'country': 'sk', 'temp': 23, 'humidity': 48, 'pressure': 1024},
-                {'dt': 'vcera', 'name': 'presov', 'country': 'sk', 'temp': 17, 'humidity': 78, 'pressure': 1024},
-                {'dt': 'predvcerom', 'name': 'zilina', 'country': 'sk', 'temp': 25, 'humidity': 58, 'pressure': 1024},
-            ]
+            'data': []
         }
+
+        # open dataset
+        with open(path) as file:
+            reader = csv.DictReader(file, delimiter=';')
+            for row in reader:
+                model['data'].append(row)
 
         # render
         print(template.render(model))

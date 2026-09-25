@@ -14,3 +14,7 @@ S3_CONN = "s3"
 BUCKET_NAME = 'mirek'
 
 DATASET_FILE = "dataset.csv"
+
+# variables
+VAR_FAILURE_NOTIFICATION_URLS = "weather_failure_notification_urls"
+VAR_LOCATIONS = 'weather_locations'

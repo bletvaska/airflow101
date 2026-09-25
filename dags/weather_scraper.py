@@ -14,7 +14,7 @@ from jsonschema import validate
 from pendulum import datetime, from_timestamp
 from sh import ping
 
-from constants import DATA_PATH, WEATHER_CONN, BUCKET_NAME, DATASET_FILE
+from constants import DATA_PATH, WEATHER_CONN, BUCKET_NAME, DATASET_FILE, VAR_FAILURE_NOTIFICATION_URLS, VAR_LOCATIONS
 from assets import WEATHER_DATA
 from tasks import is_rustfs_alive
 from helpers import get_storage
@@ -39,12 +39,19 @@ def is_service_alive_2():
     ping("-c", "1", conn.host, _timeout=2)
 
 
-@task(task_display_name="Scrape Data")
+@task(
+    task_display_name="Scrape Data",
+    retries=2, 
+    retry_delay=timedelta(minutes=1),
+    map_index_template="{{ location }}"
+)
 def scraping_data(query: str) -> dict:
     """
     Scrapes the data from openweathermap.org
     """
     logger.info("Scraping Data")
+
+    get_current_context()["location"] = query
 
     conn = BaseHook.get_connection(WEATHER_CONN)
     url = f"{conn.schema}://{conn.host}:{conn.port}/data/2.5/weather"
@@ -180,7 +187,7 @@ def notify(query: str):
     apprise = Apprise()
 
     # add receivers
-    for receiver in Variable.get('weather_notifications_receivers').split():
+    for receiver in Variable.get(VAR_FAILURE_NOTIFICATION_URLS).split():
         apprise.add(receiver)
 
     # notify receivers
@@ -201,7 +208,7 @@ def notify(query: str):
     catchup=False,
     params={
         'query': Param(
-            default=Variable.get('weather_city').split(),
+            default=Variable.get(VAR_LOCATIONS).splitlines(),
             type='array',
             title='Locations',
             description='List of locations. One location per line.'

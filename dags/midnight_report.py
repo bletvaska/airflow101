@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 import tempfile
 
+import jinja2
 from airflow.sdk import dag, task
 from airflow.sdk.exceptions import AirflowFailException
 import pendulum
@@ -9,7 +10,7 @@ from botocore.exceptions import ClientError
 
 from tasks import is_rustfs_alive
 from helpers import get_storage
-from constants import BUCKET_NAME, DATASET_FILE
+from constants import BUCKET_NAME, DATASET_FILE, TEMPLATES_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,27 @@ def create_report():
             logger.warning("Dataset file not found. Nothing to do.")
             raise AirflowFailException("Dataset file not found. Nothing to do.")
 
-        # magic
-        
+        # create Jinja2 environment
+        env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(TEMPLATES_PATH),
+            autoescape=False
+        )
+
+        # load template
+        template = env.get_template('midnight-report.tpl.j2')
+
+        model = {
+            'datetime': pendulum.now().to_iso8601_string(),
+            'data': [
+                {'dt': 'dnes', 'name': 'kosice', 'country': 'sk', 'temp': 23, 'humidity': 48, 'pressure': 1024},
+                {'dt': 'vcera', 'name': 'presov', 'country': 'sk', 'temp': 17, 'humidity': 78, 'pressure': 1024},
+                {'dt': 'predvcerom', 'name': 'zilina', 'country': 'sk', 'temp': 25, 'humidity': 58, 'pressure': 1024},
+            ]
+        }
+
+        # render
+        print(template.render(model))
+
 
 
     finally:
@@ -58,4 +78,7 @@ def main():
     is_rustfs_alive() >> create_report()
 
 
-main()
+if __name__ == "__main__":
+    main().test()
+else:
+    main()

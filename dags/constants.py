@@ -5,6 +5,7 @@ path = Path(__file__).parent.parent
 
 # path for application data
 DATA_PATH = path / "data"
+TEMPLATES_PATH = path / 'templates'
 
 
 # conn names

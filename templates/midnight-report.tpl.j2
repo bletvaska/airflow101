@@ -1,0 +1,9 @@
+# Midnight Report
+
+Tento polnocny report bol vytvoreny **{{ datetime }}**.
+
+| dt       | Name    | Country | Temperature [°C] | Humidity [%] | Pressure [hPa] |
+| -------- | ------- | ------- | ---------------- | ------------ | -------------- |
+{%- for entry in data %}
+| {{ entry["dt"] }} | {{ entry["name"] }} | {{ entry["country"] }} | {{ entry ["temp"] }} | {{ entry["humidity"] }} | {{ entry["pressure"] }} |
+{%- endfor %}

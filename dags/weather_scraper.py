@@ -7,7 +7,7 @@ from pathlib import Path
 
 from botocore.exceptions import ClientError
 import httpx
-from airflow.sdk import BaseHook, Variable, dag, task, task_group, Param
+from airflow.sdk import BaseHook, Variable, dag, task, task_group, Param, get_current_context
 from airflow.sdk.exceptions import AirflowFailException
 from jsonschema import validate
 from pendulum import datetime, from_timestamp
@@ -154,6 +154,18 @@ def tg_weather_ingestion(query: str):
     publishing_data(csv_entry)
 
 
+@task
+def get_locations() -> list:
+    context = get_current_context()
+
+    locations = context['params']['query']
+
+    return locations
+
+    # from pprint import pprint
+    # pprint(context)
+
+
 @dag(
     "weather_scraper",
     dag_display_name="Weather Scraper",
@@ -173,7 +185,21 @@ def tg_weather_ingestion(query: str):
     }
 )
 def main():
-    tg_healthcheck() # >> tg_weather_ingestion(query)
+    locations = get_locations()
+
+    # .expand(query=locations)
+    # .partial()
+
+    tg_healthcheck() >> tg_weather_ingestion.expand(query=locations)
+    
+    #scraping_data.expand(query=locations)
+    #valid_data = validate_data.expand(json_data=data)
+    # csv_entry = processing_data(valid_data)
+    # publishing_data(csv_entry)
+    
+    
+    
+    
 
 
 

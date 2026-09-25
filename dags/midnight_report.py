@@ -15,6 +15,8 @@ from constants import BUCKET_NAME, DATASET_FILE, TEMPLATES_PATH
 
 logger = logging.getLogger(__name__)
 
+MIDNIGHT_REPORT = "midnight-report.md"
+
 
 @task(task_display_name="Create Report")
 def create_report():
@@ -23,7 +25,6 @@ def create_report():
     # stiahni dataset
     # (ak sa nepodarilo, tak skonci s chybou)
     storage = get_storage()
-
 
     bucket = storage.Bucket(BUCKET_NAME)
 
@@ -38,29 +39,30 @@ def create_report():
 
         # create Jinja2 environment
         env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(TEMPLATES_PATH),
-            autoescape=False
+            loader=jinja2.FileSystemLoader(TEMPLATES_PATH), autoescape=False
         )
 
         # load template
-        template = env.get_template('midnight-report.tpl.j2')
+        template = env.get_template("midnight-report.tpl.j2")
 
         # create model
-        model = {
-            'datetime': pendulum.now().to_iso8601_string(),
-            'data': []
-        }
+        model = {"datetime": pendulum.now().to_iso8601_string(), "data": []}
 
         # open dataset
         with open(path) as file:
-            reader = csv.DictReader(file, delimiter=';')
+            reader = csv.DictReader(file, delimiter=";")
             for row in reader:
-                model['data'].append(row)
+                model["data"].append(row)
 
         # render
-        print(template.render(model))
+        report = template.render(model)
 
-
+        # upload midnight report
+        bucket.put_object(
+            Key=MIDNIGHT_REPORT,
+            Body=report.encode('utf-8'),
+            ContextType="text/plain; charset=utf-8"
+        )
 
     finally:
         # clean up

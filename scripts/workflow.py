@@ -53,7 +53,6 @@ def publish_data(data: dict):
     Data persistence
     """
     print(">> Publishing Data")
-    print(json.dumps(data))
 
     # line = data['dt'] + ',' + data['city'] + ',' + data['country'] + ',' + str(data['weather']) + ',' + str(data['temp']) + ',' + str(data['humidity']) + ',' + str(data['pressure'])
     # line = f"{data['dt']},{data['city']},{data['country']},{data['weather']},{data['temp']},{data['humidity']},{data['pressure']}"
@@ -67,9 +66,8 @@ def publish_data(data: dict):
         data['pressure'],
     )
 
-    file = open('dataset.csv', mode='a')
-    print(line, file=file)
-    file.close()
+    with open('dataset.csv', mode='a') as file:
+        print(line, file=file)
 
     # {'dt': '2026-10-28T08:24:48Z', 'city': 'Kosice', 'country': 'SK', 'weather': 800, 'temp':10.14, 'humidity': 71, 'pressure': 1022}
     # 2026-10-28T08:24:48Z,Kosice,SK,800,10.14,

@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 
-import json
-
+import click
 import httpx
 import pendulum
 
 
-def scrape_data() -> dict:
+def scrape_data(query: str) -> dict:
     """
     Scrapes data from openweathermap.org
     """
     print(">> Scraping Data")
     
-    query = 'kosice'
+    # query = 'kosice'
     appid = '9e547051a2a00f2bf3e17a160063002d'
     units = 'metric'
 
@@ -73,8 +72,10 @@ def publish_data(data: dict):
     # 2026-10-28T08:24:48Z,Kosice,SK,800,10.14,
 
 
-def main():
-    measurement = scrape_data()
+@click.command(help='Download current weather conditions in CSV format.')
+@click.argument('query')
+def main(query: str):
+    measurement = scrape_data(query)
     entry = process_data(measurement)
     publish_data(entry)
 

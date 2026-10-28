@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import json
+
 import httpx
 import pendulum
 
@@ -14,6 +16,11 @@ def scrape_data() -> dict:
     appid = '9e547051a2a00f2bf3e17a160063002d'
     units = 'metric'
 
+    # SELECT * FROM weather
+    # WHERE
+    # q = 'kosice'
+    # AND appid = '9e547051a2a00f2bf3e17a160063002d'
+    # AND units = 'metric'
     url = "https://api.openweathermap.org/data/2.5/weather"
     params = f"q={query}&appid={appid}&units={units}"
 
@@ -46,10 +53,26 @@ def publish_data(data: dict):
     Data persistence
     """
     print(">> Publishing Data")
+    print(json.dumps(data))
+
+    # line = data['dt'] + ',' + data['city'] + ',' + data['country'] + ',' + str(data['weather']) + ',' + str(data['temp']) + ',' + str(data['humidity']) + ',' + str(data['pressure'])
+    # line = f"{data['dt']},{data['city']},{data['country']},{data['weather']},{data['temp']},{data['humidity']},{data['pressure']}"
+    line = '{},{},{},{},{},{},{}'.format(
+        data['dt'],
+        data['city'],
+        data['country'],
+        data['weather'],
+        data['temp'],
+        data['humidity'],
+        data['pressure'],
+    )
 
     file = open('dataset.csv', mode='a')
-    print('kurnik sopa', file=file)
+    print(line, file=file)
     file.close()
+
+    # {'dt': '2026-10-28T08:24:48Z', 'city': 'Kosice', 'country': 'SK', 'weather': 800, 'temp':10.14, 'humidity': 71, 'pressure': 1022}
+    # 2026-10-28T08:24:48Z,Kosice,SK,800,10.14,
 
 
 def main():

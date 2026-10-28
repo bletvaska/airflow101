@@ -5,14 +5,14 @@ import httpx
 import pendulum
 
 
-def scrape_data(query: str) -> dict:
+def scrape_data(query: str, appid: str) -> dict:
     """
     Scrapes data from openweathermap.org
     """
     print(">> Scraping Data")
     
     # query = 'kosice'
-    appid = '9e547051a2a00f2bf3e17a160063002d'
+    # appid = '9e547051a2a00f2bf3e17a160063002d'
     units = 'metric'
 
     # SELECT * FROM weather
@@ -74,8 +74,9 @@ def publish_data(data: dict):
 
 @click.command(help='Download current weather conditions in CSV format.')
 @click.argument('query')
-def main(query: str):
-    measurement = scrape_data(query)
+@click.option('--appid', '-a', help='Unique API key for openweathermap.org')
+def main(query: str, appid: str):
+    measurement = scrape_data(query, appid)
     entry = process_data(measurement)
     publish_data(entry)
 

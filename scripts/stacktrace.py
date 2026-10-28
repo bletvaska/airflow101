@@ -10,4 +10,10 @@ def f3():
     print('>> f3()')
     f2()
 
-f3()
+try:
+    f3()
+except Exception as ex:
+    # this will never happen
+    print(ex)
+    # import traceback
+    # traceback.print_exc()

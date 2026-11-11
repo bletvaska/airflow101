@@ -1,9 +1,11 @@
+from pathlib import Path
+
 import httpx
 from airflow.sdk import dag, task
-from pendulum import datetime
+from pendulum import datetime, from_timestamp
 
 
-@task(task_display_name='Scrape Data')
+@task(task_display_name="Scrape Data")
 def scrape_data(query: str, appid: str, units: str) -> dict:
     """
     Scrapes data from openweathermap.org
@@ -18,17 +20,67 @@ def scrape_data(query: str, appid: str, units: str) -> dict:
     return response.json()
 
 
+@task(task_display_name="Process Data")
+def process_data(data: dict) -> dict:
+    """
+    Process the downloaded data
+    """
+    print(">> Processing Data")
+
+    result = {
+        "dt": from_timestamp(data["dt"], "UTC").to_iso8601_string(),
+        "city": data["name"],
+        "country": data["sys"]["country"],
+        "weather": data["weather"][0]["id"],
+        "temp": data["main"]["temp"],
+        "humidity": data["main"]["humidity"],
+        "pressure": data["main"]["pressure"],
+    }
+
+    return result
+
+
+@task(task_display_name="Publish Data")
+def publish_data(data: dict):
+    """
+    Data persistence
+    """
+    print(">> Publishing Data")
+
+    # line = data['dt'] + ',' + data['city'] + ',' + data['country'] + ',' + str(data['weather']) + ',' + str(data['temp']) + ',' + str(data['humidity']) + ',' + str(data['pressure'])
+    # line = f"{data['dt']},{data['city']},{data['country']},{data['weather']},{data['temp']},{data['humidity']},{data['pressure']}"
+    line = "{},{},{},{},{},{},{}".format(
+        data["dt"],
+        data["city"],
+        data["country"],
+        data["weather"],
+        data["temp"],
+        data["humidity"],
+        data["pressure"],
+    )
+
+    path = Path(__file__).parent.parent / 'datasets' / 'dataset.csv'
+    with open(path, mode="a") as file:
+        print(line, file=file)
+
+
 @dag(
-    'weather_scraper',
-    dag_display_name='Weather Scraper 20m',
-    description='Scrapes weather from openweathermap.org',
-    schedule='*/20 * * * *',
+    "weather_scraper",
+    dag_display_name="Weather Scraper 20m",
+    description="Scrapes weather from openweathermap.org",
+    schedule="*/20 * * * *",
     start_date=datetime(2026, 10, 27),
     end_date=datetime(2026, 12, 24),
-    tags=['weather', 'training', 'dt'],
+    tags=["weather", "training", "dt"],
     catchup=False,
 )
 def main():
-    scrape_data('kosice', '9e547051a2a00f2bf3e17a160063002d', 'metric')
+    measurement = scrape_data("kosice", "9e547051a2a00f2bf3e17a160063002d", "metric")
+    entry = process_data(measurement)
+    publish_data(entry)
+
+
+#    CTRL+Space - intellisence
+
 
 main()

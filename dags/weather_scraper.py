@@ -20,7 +20,7 @@ def scrape_data(query: str) -> dict:
     url = f"{conn.schema}://{conn.host}/data/2.5/weather"
     params = {
         "q": query,
-        "appid": conn.password + "xxx",
+        "appid": conn.password,
         "units": conn.extra_dejson["units"],
     }
 

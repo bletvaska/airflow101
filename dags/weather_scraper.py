@@ -81,6 +81,11 @@ def publish_data(data: dict):
         print(line, file=dataset)
 
 
+@task(task_display_name="Openweathermap Healthcheck")
+def is_service_alive():
+    pass
+
+
 @dag(
     "weather_scraper",
     dag_display_name="Weather Scraper 20m",
@@ -92,7 +97,7 @@ def publish_data(data: dict):
     catchup=False,
 )
 def main(query: str = "kosice"):
-    measurement = scrape_data(query)
+    measurement = is_service_alive() >> scrape_data(query)
     entry = process_data(measurement)
     publish_data(entry)
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import httpx
-from airflow.sdk import dag, task
+from airflow.sdk import BaseHook, dag, task
 from pendulum import datetime, from_timestamp
 
 
@@ -10,12 +10,16 @@ def scrape_data(query: str, appid: str, units: str) -> dict:
     """
     Scrapes data from openweathermap.org
     """
-    print(">> Scraping Data")
+    conn = BaseHook.get_connection("openweathermap")
 
-    url = "https://api.openweathermap.org/data/2.5/weather"
-    params = f"q={query}&appid={appid}&units={units}"
+    url = f"{conn.schema}://{conn.host}/data/2.5/weather"
+    params = {
+        "q": query,
+        "appid": conn.password,
+        "units": conn.extra_dejson.get("units"),
+    }
 
-    response = httpx.get(f"{url}?{params}")
+    response = httpx.get(url, params=params)
 
     return response.json()
 

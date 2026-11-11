@@ -1,8 +1,13 @@
+import logging
+from http import HTTPStatus
 from pathlib import Path
 
 import httpx
 from airflow.sdk import BaseHook, dag, task
+from airflow.sdk.exceptions import AirflowFailException
 from pendulum import datetime, from_timestamp
+
+logger = logging.getLogger(__name__)
 
 
 @task(task_display_name="Scrape Data")
@@ -15,11 +20,15 @@ def scrape_data(query: str) -> dict:
     url = f"{conn.schema}://{conn.host}/data/2.5/weather"
     params = {
         "q": query,
-        "appid": conn.password,
+        "appid": conn.password + "xxx",
         "units": conn.extra_dejson["units"],
     }
 
     response = httpx.get(url, params=params)
+    if response.status_code != HTTPStatus.OK:
+        data = response.json()
+        logger.error(f"{response.status_code} - {data['message']}")
+        raise AirflowFailException("Incorrect data")
 
     return response.json()
 
@@ -29,7 +38,7 @@ def process_data(data: dict) -> dict:
     """
     Process the downloaded data
     """
-    print(">> Processing Data")
+    logger.info(">> Processing Data")
 
     result = {
         "dt": from_timestamp(data["dt"], "UTC").to_iso8601_string(),
@@ -49,7 +58,7 @@ def publish_data(data: dict):
     """
     Data persistence
     """
-    print(">> Publishing Data")
+    logger.info(">> Publishing Data")
 
     # line = data['dt'] + ',' + data['city'] + ',' + data['country'] + ',' + str(data['weather']) + ',' + str(data['temp']) + ',' + str(data['humidity']) + ',' + str(data['pressure'])
     # line = f"{data['dt']},{data['city']},{data['country']},{data['weather']},{data['temp']},{data['humidity']},{data['pressure']}"

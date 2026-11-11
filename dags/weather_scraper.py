@@ -60,11 +60,11 @@ def publish_data(data: dict):
     )
 
     # create datasets folder if not exist
-    path = Path(__file__).parent.parent / 'datasets'
+    path = Path(__file__).parent.parent / "datasets"
     path.mkdir(parents=True, exist_ok=True)  # mkdir /path/to/folder --parents
 
     # append new line to dataset file
-    with open(path / 'dataset.csv', mode="a") as dataset:
+    with open(path / "dataset.csv", mode="a") as dataset:
         print(line, file=dataset)
 
 
@@ -78,13 +78,19 @@ def publish_data(data: dict):
     tags=["weather", "training", "dt"],
     catchup=False,
 )
-def main():
-    measurement = scrape_data("kosice", "9e547051a2a00f2bf3e17a160063002d", "metric")
+def main(
+    query: str = "kosice",
+    appid: str = "9e547051a2a00f2bf3e17a160063002d",
+    units: str = "metric",
+):
+    measurement = scrape_data(query, appid, units)
     entry = process_data(measurement)
     publish_data(entry)
 
 
 #    CTRL+Space - intellisence
 
-
-main()
+if __name__ == "__main__":
+    main().test()
+else:
+    main()

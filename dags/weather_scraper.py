@@ -59,9 +59,13 @@ def publish_data(data: dict):
         data["pressure"],
     )
 
-    path = Path(__file__).parent.parent / 'datasets' / 'dataset.csv'
-    with open(path, mode="a") as file:
-        print(line, file=file)
+    # create datasets folder if not exist
+    path = Path(__file__).parent.parent / 'datasets'
+    path.mkdir(parents=True, exist_ok=True)  # mkdir /path/to/folder --parents
+
+    # append new line to dataset file
+    with open(path / 'dataset.csv', mode="a") as dataset:
+        print(line, file=dataset)
 
 
 @dag(

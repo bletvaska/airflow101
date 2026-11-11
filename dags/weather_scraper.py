@@ -6,7 +6,7 @@ from pendulum import datetime, from_timestamp
 
 
 @task(task_display_name="Scrape Data")
-def scrape_data(query: str, appid: str, units: str) -> dict:
+def scrape_data(query: str) -> dict:
     """
     Scrapes data from openweathermap.org
     """
@@ -16,7 +16,7 @@ def scrape_data(query: str, appid: str, units: str) -> dict:
     params = {
         "q": query,
         "appid": conn.password,
-        "units": conn.extra_dejson.get("units"),
+        "units": conn.extra_dejson["units"],
     }
 
     response = httpx.get(url, params=params)
@@ -82,12 +82,8 @@ def publish_data(data: dict):
     tags=["weather", "training", "dt"],
     catchup=False,
 )
-def main(
-    query: str = "kosice",
-    appid: str = "9e547051a2a00f2bf3e17a160063002d",
-    units: str = "metric",
-):
-    measurement = scrape_data(query, appid, units)
+def main(query: str = "kosice"):
+    measurement = scrape_data(query)
     entry = process_data(measurement)
     publish_data(entry)
 

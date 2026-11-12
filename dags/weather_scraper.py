@@ -86,11 +86,24 @@ def publish_data(data: dict):
     task_display_name="Openweathermap Healthcheck",
     execution_timeout=timedelta(seconds=5),
     retries=3,
-    retry_delay=timedelta(seconds=10)
+    retry_delay=timedelta(seconds=10),
 )
 def is_service_alive():
-    conn = BaseHook.get_connection('openweathermap')
+    conn = BaseHook.get_connection("openweathermap")
     return f"ping -c 1 -w 2 {conn.host}"
+
+
+@task(
+    task_display_name="Ping with sh",
+    execution_timeout=timedelta(seconds=5),
+    retries=3,
+    retry_delay=timedelta(seconds=10),
+)
+def ping_with_sh():
+    from sh import ping
+
+    conn = BaseHook.get_connection("openweathermap")
+    ping("-c", "1", "-w", "2", conn.host)
 
 
 @dag(
@@ -104,7 +117,7 @@ def is_service_alive():
     catchup=False,
 )
 def main(query: str = "kosice"):
-    measurement = is_service_alive() >> scrape_data(query)
+    measurement = ping_with_sh() >> scrape_data(query)
     entry = process_data(measurement)
     publish_data(entry)
 

@@ -1,0 +1,6 @@
+sh==2.4.0
+httpx==0.28.1
+apache-airflow==3.3.2
+
+# development
+ipython

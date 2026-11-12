@@ -4,7 +4,15 @@ from http import HTTPStatus
 from pathlib import Path
 
 import httpx
-from airflow.sdk import BaseHook, Param, Variable, dag, get_current_context, task
+from airflow.sdk import (
+    BaseHook,
+    Param,
+    Variable,
+    dag,
+    get_current_context,
+    task,
+    task_group,
+)
 from airflow.sdk.exceptions import AirflowFailException
 from pendulum import datetime, from_timestamp
 
@@ -122,18 +130,23 @@ def http_head():
     print(response.status_code)
     if response.status_code != HTTPStatus.MOVED_PERMANENTLY:
         raise AirflowFailException("Incorrect HTTP Status code")
-        
+
 
 @task
 def get_location():
     context = get_current_context()
 
     # location = context['params']['query'] or Variable.get('weather_location')
-    location = context['params']['query']
+    location = context["params"]["query"]
     if location is None:
-        location = Variable.get('weather_location')
+        location = Variable.get("weather_location")
 
     return location
+
+
+@task_group(group_display_name="Healthcheck")
+def tg_healthcheck():
+    return [is_service_alive(), ping_with_sh(), http_head()]
 
 
 @dag(
@@ -145,18 +158,18 @@ def get_location():
     end_date=datetime(2026, 12, 24),
     tags=["weather", "training", "dt"],
     catchup=False,
-    params = {
-        'query': Param(
-            type=['string', 'null'],
-            title='Locations',
-            description='The name of location to retrieve weather info about.',
-            default=None
+    params={
+        "query": Param(
+            type=["string", "null"],
+            title="Locations",
+            description="The name of location to retrieve weather info about.",
+            default=None,
         )
-    }
+    },
 )
 def main():
     query = get_location()
-    measurement = [is_service_alive(), ping_with_sh(), http_head()] >> scrape_data(query)
+    measurement = tg_healthcheck() >> scrape_data(query)
     entry = process_data(measurement)
     publish_data(entry)
 

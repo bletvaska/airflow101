@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from http import HTTPStatus
 from pathlib import Path
 
@@ -81,9 +82,15 @@ def publish_data(data: dict):
         print(line, file=dataset)
 
 
-@task(task_display_name="Openweathermap Healthcheck")
+@task.bash(
+    task_display_name="Openweathermap Healthcheck",
+    execution_timeout=timedelta(seconds=5),
+    retries=3,
+    retry_delay=timedelta(seconds=10)
+)
 def is_service_alive():
-    pass
+    conn = BaseHook.get_connection('openweathermap')
+    return f"ping -c 1 -w 2 {conn.host}"
 
 
 @dag(

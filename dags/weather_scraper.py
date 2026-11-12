@@ -132,7 +132,11 @@ def http_head():
     catchup=False,
 )
 def main(query: str = "kosice"):
-    measurement = http_head() >> scrape_data(query)
+    measurement = [
+        is_service_alive(),
+        ping_with_sh(),
+        http_head()
+     ] >> scrape_data(query)
     entry = process_data(measurement)
     publish_data(entry)
 

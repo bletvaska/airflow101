@@ -3,6 +3,7 @@ from datetime import timedelta
 from http import HTTPStatus
 from pathlib import Path
 
+import boto3
 import httpx
 from airflow.sdk import (
     BaseHook,
@@ -18,7 +19,8 @@ from pendulum import datetime, from_timestamp
 
 logger = logging.getLogger(__name__)
 
-CONN_NAME = "openweathermap"
+RUSTFS_CONN_ID = "rustfs"
+WEATHER_API_CONN_ID = "openweathermap"
 
 
 @task(task_display_name="Scrape Data")
@@ -26,7 +28,7 @@ def scrape_data(query: str) -> dict:
     """
     Scrapes data from openweathermap.org
     """
-    conn = BaseHook.get_connection(CONN_NAME)
+    conn = BaseHook.get_connection(WEATHER_API_CONN_ID)
 
     url = f"{conn.schema}://{conn.host}/data/2.5/weather"
     params = {
@@ -91,6 +93,17 @@ def publish_data(data: dict):
     with open(path / "dataset.csv", mode="a") as dataset:
         print(line, file=dataset)
 
+    # upload dataset to s3/bucket
+    conn = BaseHook.get_connection(RUSTFS_CONN_ID)
+    storage = boto3.resource(
+        "s3",
+        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
+        aws_access_key_id=conn.login,
+        aws_secret_access_key=conn.password,
+    )
+    bucket = storage.Bucket("mirek")
+    bucket.upload_file(path / "dataset.csv", "dataset.csv")
+
 
 @task.bash(
     task_display_name="Openweathermap Healthcheck",
@@ -99,7 +112,7 @@ def publish_data(data: dict):
     retry_delay=timedelta(seconds=10),
 )
 def is_service_alive():
-    conn = BaseHook.get_connection(CONN_NAME)
+    conn = BaseHook.get_connection(WEATHER_API_CONN_ID)
     return f"ping -c 1 -w 2 {conn.host}"
 
 
@@ -112,7 +125,7 @@ def is_service_alive():
 def ping_with_sh():
     from sh import ping
 
-    conn = BaseHook.get_connection(CONN_NAME)
+    conn = BaseHook.get_connection(WEATHER_API_CONN_ID)
     ping("-c", "1", "-w", "2", conn.host)
 
 
@@ -123,7 +136,7 @@ def ping_with_sh():
     retry_delay=timedelta(seconds=10),
 )
 def http_head():
-    conn = BaseHook.get_connection(CONN_NAME)
+    conn = BaseHook.get_connection(WEATHER_API_CONN_ID)
 
     response = httpx.head(f"{conn.schema}://{conn.host}")
     print(f"{conn.schema}://{conn.host}")

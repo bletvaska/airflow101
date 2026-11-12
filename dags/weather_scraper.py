@@ -105,6 +105,21 @@ def ping_with_sh():
     conn = BaseHook.get_connection("openweathermap")
     ping("-c", "1", "-w", "2", conn.host)
 
+@task(
+    task_display_name="HTTP HEAD with httpx",
+    execution_timeout=timedelta(seconds=5),
+    retries=3,
+    retry_delay=timedelta(seconds=10),
+)
+def http_head():
+    conn = BaseHook.get_connection("openweathermap")
+
+    response = httpx.head(f"{conn.schema}://{conn.host}")
+    print(f"{conn.schema}://{conn.host}")
+    print(response.status_code)
+    if response.status_code != HTTPStatus.MOVED_PERMANENTLY:
+        raise AirflowFailException("Incorrect HTTP Status code")
+
 
 @dag(
     "weather_scraper",
@@ -117,7 +132,7 @@ def ping_with_sh():
     catchup=False,
 )
 def main(query: str = "kosice"):
-    measurement = ping_with_sh() >> scrape_data(query)
+    measurement = http_head() >> scrape_data(query)
     entry = process_data(measurement)
     publish_data(entry)
 

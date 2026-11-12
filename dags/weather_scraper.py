@@ -10,13 +10,15 @@ from pendulum import datetime, from_timestamp
 
 logger = logging.getLogger(__name__)
 
+CONN_NAME = "openweathermap"
+
 
 @task(task_display_name="Scrape Data")
 def scrape_data(query: str) -> dict:
     """
     Scrapes data from openweathermap.org
     """
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(CONN_NAME)
 
     url = f"{conn.schema}://{conn.host}/data/2.5/weather"
     params = {
@@ -89,7 +91,7 @@ def publish_data(data: dict):
     retry_delay=timedelta(seconds=10),
 )
 def is_service_alive():
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(CONN_NAME)
     return f"ping -c 1 -w 2 {conn.host}"
 
 
@@ -102,8 +104,9 @@ def is_service_alive():
 def ping_with_sh():
     from sh import ping
 
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(CONN_NAME)
     ping("-c", "1", "-w", "2", conn.host)
+
 
 @task(
     task_display_name="HTTP HEAD with httpx",
@@ -112,7 +115,7 @@ def ping_with_sh():
     retry_delay=timedelta(seconds=10),
 )
 def http_head():
-    conn = BaseHook.get_connection("openweathermap")
+    conn = BaseHook.get_connection(CONN_NAME)
 
     response = httpx.head(f"{conn.schema}://{conn.host}")
     print(f"{conn.schema}://{conn.host}")
@@ -132,11 +135,9 @@ def http_head():
     catchup=False,
 )
 def main(query: str = "kosice"):
-    measurement = [
-        is_service_alive(),
-        ping_with_sh(),
-        http_head()
-     ] >> scrape_data(query)
+    measurement = [is_service_alive(), ping_with_sh(), http_head()] >> scrape_data(
+        query
+    )
     entry = process_data(measurement)
     publish_data(entry)
 

@@ -99,8 +99,10 @@ def publish_data(data: dict):
 
         # download
         temp_path = Path(mkstemp()[1])
+        filename = f'{data["city"]}-{data["country"]}.csv'.lower()
+
         try:
-            bucket.download_file(DATASET_FILENAME, temp_path)
+            bucket.download_file(filename, temp_path)
         except ClientError:
             logger.warning("Dataset doesn't exist. Possible first time upload.")
             with open(temp_path, mode="w") as dataset:
@@ -111,7 +113,7 @@ def publish_data(data: dict):
             print(line, file=dataset)
 
         # upload
-        bucket.upload_file(temp_path, DATASET_FILENAME)
+        bucket.upload_file(temp_path, filename)
 
     except Exception as ex:
         logger.exception(ex)

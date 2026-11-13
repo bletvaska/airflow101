@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from http import HTTPStatus
 from pathlib import Path
+from tempfile import mkstemp
 
 import boto3
 import httpx
@@ -85,14 +86,6 @@ def publish_data(data: dict):
         data["pressure"],
     )
 
-    # create datasets folder if not exist
-    path = Path(__file__).parent.parent / "datasets"
-    path.mkdir(parents=True, exist_ok=True)  # mkdir /path/to/folder --parents
-
-    # append new line to dataset file
-    with open(path / "dataset.csv", mode="a") as dataset:
-        print(line, file=dataset)
-
     # upload dataset to s3/bucket
     conn = BaseHook.get_connection(RUSTFS_CONN_ID)
     storage = boto3.resource(
@@ -102,7 +95,17 @@ def publish_data(data: dict):
         aws_secret_access_key=conn.password,
     )
     bucket = storage.Bucket("mirek")
-    bucket.upload_file(path / "dataset.csv", "dataset.csv")
+
+    # download
+    temp_path = Path(mkstemp()[1])
+    bucket.download_file('dataset.csv', temp_path)
+
+    # append new line to dataset file
+    with open(temp_path, mode="a") as dataset:
+        print(line, file=dataset)
+
+    # upload
+    bucket.upload_file(temp_path, "dataset.csv")
 
 
 @task.bash(

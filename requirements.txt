@@ -1,7 +1,11 @@
+# airflow
 apache-airflow==3.3.2
 boto3==1.44.1
 httpx==0.28.1
 sh==2.4.0
+
+# data analytics
+pandas==3.1.1
 
 # development
 ipython

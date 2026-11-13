@@ -87,31 +87,39 @@ def publish_data(data: dict):
         data["pressure"],
     )
 
-    # upload dataset to s3/bucket
-    conn = BaseHook.get_connection(RUSTFS_CONN_ID)
-    storage = boto3.resource(
-        "s3",
-        endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
-        aws_access_key_id=conn.login,
-        aws_secret_access_key=conn.password,
-    )
-    bucket = storage.Bucket("mirek")
-
-    # download
-    temp_path = Path(mkstemp()[1])
     try:
-        bucket.download_file('dataset.csv', temp_path)
-    except ClientError:
-        logger.warning("Dataset doesn't exist. Possible first time upload.")
-        with open(temp_path, mode="w") as dataset:
-            print('dt,city,country,weather,temp,humidity,pressure', file=dataset)
+        # upload dataset to s3/bucket
+        conn = BaseHook.get_connection(RUSTFS_CONN_ID)
+        storage = boto3.resource(
+            "s3",
+            endpoint_url=f"{conn.schema}://{conn.host}:{conn.port}",
+            aws_access_key_id=conn.login,
+            aws_secret_access_key=conn.password,
+        )
+        bucket = storage.Bucket("mirek")
 
-    # append new line to dataset file
-    with open(temp_path, mode="a") as dataset:
-        print(line, file=dataset)
+        # download
+        temp_path = Path(mkstemp()[1])
+        try:
+            bucket.download_file('dataset.csv', temp_path)
+        except ClientError:
+            logger.warning("Dataset doesn't exist. Possible first time upload.")
+            with open(temp_path, mode="w") as dataset:
+                print('dt,city,country,weather,temp,humidity,pressure', file=dataset)
 
-    # upload
-    bucket.upload_file(temp_path, "dataset.csv")
+        # append new line to dataset file
+        with open(temp_path, mode="a") as dataset:
+            print(line, file=dataset)
+
+        # upload
+        bucket.upload_file(temp_path, "dataset.csv")
+    
+    except Exception as ex:
+        logger.exception(ex)
+
+    finally:
+        # cleanup
+        temp_path.unlink(True)
 
 
 @task.bash(

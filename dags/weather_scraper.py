@@ -19,10 +19,9 @@ from airflow.sdk.exceptions import AirflowFailException
 from botocore.exceptions import ClientError
 from pendulum import datetime, from_timestamp
 
-logger = logging.getLogger(__name__)
+from constants import BUCKET_NAME, DATASET_FILENAME, RUSTFS_CONN_ID, WEATHER_API_CONN_ID
 
-RUSTFS_CONN_ID = "rustfs"
-WEATHER_API_CONN_ID = "openweathermap"
+logger = logging.getLogger(__name__)
 
 
 @task(task_display_name="Scrape Data")
@@ -96,24 +95,24 @@ def publish_data(data: dict):
             aws_access_key_id=conn.login,
             aws_secret_access_key=conn.password,
         )
-        bucket = storage.Bucket("mirek")
+        bucket = storage.Bucket(BUCKET_NAME)
 
         # download
         temp_path = Path(mkstemp()[1])
         try:
-            bucket.download_file('dataset.csv', temp_path)
+            bucket.download_file(DATASET_FILENAME, temp_path)
         except ClientError:
             logger.warning("Dataset doesn't exist. Possible first time upload.")
             with open(temp_path, mode="w") as dataset:
-                print('dt,city,country,weather,temp,humidity,pressure', file=dataset)
+                print("dt,city,country,weather,temp,humidity,pressure", file=dataset)
 
         # append new line to dataset file
         with open(temp_path, mode="a") as dataset:
             print(line, file=dataset)
 
         # upload
-        bucket.upload_file(temp_path, "dataset.csv")
-    
+        bucket.upload_file(temp_path, DATASET_FILENAME)
+
     except Exception as ex:
         logger.exception(ex)
 

@@ -16,6 +16,7 @@ from airflow.sdk import (
     task_group,
 )
 from airflow.sdk.exceptions import AirflowFailException
+from botocore.exceptions import ClientError
 from pendulum import datetime, from_timestamp
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,12 @@ def publish_data(data: dict):
 
     # download
     temp_path = Path(mkstemp()[1])
-    bucket.download_file('dataset.csv', temp_path)
+    try:
+        bucket.download_file('dataset.csv', temp_path)
+    except ClientError:
+        logger.warning("Dataset doesn't exist. Possible first time upload.")
+        with open(temp_path, mode="w") as dataset:
+            print('dt,city,country,weather,temp,humidity,pressure', file=dataset)
 
     # append new line to dataset file
     with open(temp_path, mode="a") as dataset:

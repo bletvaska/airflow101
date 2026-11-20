@@ -108,4 +108,16 @@ profit = filtered_df['price'].sum()
 f'Zisk: **${profit:.2f}**'
 
 
+f'## Nástupy na mape zo dňa {date}'
+
+hour = st.slider('**Vyber hodinu:**', 0, 23, 12 )
+
+st.map(
+    data = None,
+    latitude = None, 
+    longitude = None, 
+    zoom = 4
+)
+
+
 "well done"

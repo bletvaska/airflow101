@@ -86,21 +86,26 @@ if st.checkbox("Zobraziť dáta") is True:
     st.write(df)
 
 
+"## Prehľad jázd za jeden deň"
+
 # date picker
 date = st.date_input(
-    label="**Vyber dátum**", 
-    value=datetime.date(2014, 1, 1), 
-    min_value=df["pickup"].min().date(), 
+    label="**Vyber dátum**",
+    value=datetime.date(2014, 1, 1),
+    min_value=df["pickup"].min().date(),
     max_value=df["pickup"].max().date(),
 )
 
-
 # Filter dataframe to only include rows with the selected date
-filtered_df = df.loc[df["pickup"].dt.date == date]
+filtered_df = df.loc[df["pickup"].dt.date == date, :]
 # Group by hour and sum prices for each hour
 data = filtered_df.groupby(filtered_df["pickup"].dt.hour)["price"].sum()
+
 # Display bar chart with hourly price sums
 st.bar_chart(data, x_label="cas")
+
+profit = filtered_df['price'].sum()
+f'Zisk: **${profit:.2f}**'
 
 
 "well done"

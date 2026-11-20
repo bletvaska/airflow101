@@ -62,7 +62,15 @@ data_load_state = st.text('Nahrávam dataset')
 df = load_data()
 data_load_state.text('Nahrávam dataset... Nahraté.')
 
-# st.write(df)
-df
+# show/hide dataframe in app
+if st.checkbox('Zobraziť dáta') is True:
+    st.write(df)
+
+
+date = st.date_input("**Vyber dátum")
+date
+
+data = df.groupby('pickup')['price'].sum()
+st.bar_chart(data, x_label='cas')
 
 "well done"

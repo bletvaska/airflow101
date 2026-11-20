@@ -1,7 +1,10 @@
+from time import sleep
+
 import pandas as pd
 import streamlit as st
 
 
+@st.cache_data
 def load_data():
     df = pd.read_csv('uber.csv', 
         # index_col=0, 
@@ -9,9 +12,9 @@ def load_data():
         names=['key', 'dt', 'price', 'pickup', 'pickup_lon', 'pickup_lat', 'dropoff_lon', 'dropoff_lat', 'passengers'],
         dtype={
                 "passengers": "uint16",
-                "price": "float16",
-                "pickup_lon": "float16",
-                "pickup_lat": "float16",
+                "price": "float32",
+                "pickup_lon": "float32",
+                "pickup_lat": "float32",
                 "dropoff_lon": "float32",
                 "dropoff_lat": "float32",
                 "key": "uint32",
@@ -33,8 +36,10 @@ def load_data():
         utc=True, 
     ).dt.as_unit("s")
 
+    sleep(9)
+
     return df
-    
+
 
 # st.title("Uber pickups in NYC")
 # st.image('https://www.investopedia.com/thmb/rRFyB5UPC1a0_X6AUSw8owO7eso=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/GettyImages-1923331422-852a4015c4534c60acd38b48dcd2c392.jpg')
@@ -49,3 +54,15 @@ def load_data():
 
 Pozrieme sa bližšie na jednotlivé jazdy taxíkmi spoločnosťou **Uber** v meste **New York**.
 """
+
+# "### Nahrávanie dát"
+st.subheader("Nahrávanie dát")
+
+data_load_state = st.text('Nahrávam dataset')
+df = load_data()
+data_load_state.text('Nahrávam dataset... Nahraté.')
+
+# st.write(df)
+df
+
+"well done"

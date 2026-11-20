@@ -25,10 +25,10 @@ def load_data():
         dtype={
             "passengers": "uint16",
             "price": "float32",
-            "pickup_lon": "float32",
-            "pickup_lat": "float32",
-            "dropoff_lon": "float32",
-            "dropoff_lat": "float32",
+            "pickup_lon": "float64",
+            "pickup_lat": "float64",
+            "dropoff_lon": "float64",
+            "dropoff_lat": "float64",
             "key": "uint32",
         },
         # parse_dates=['dt', 'pickup'],
@@ -110,12 +110,18 @@ f'Zisk: **${profit:.2f}**'
 
 f'## Nástupy na mape zo dňa {date}'
 
-hour = st.slider('**Vyber hodinu:**', 0, 23, 12 )
+hour = st.slider(label='**Vyber hodinu:**', min_value=0, max_value=23, value=12 )
+
+df_hour = filtered_df.loc[
+    filtered_df['pickup'].dt.hour == hour,
+    :
+]
+
 
 st.map(
-    data = None,
-    latitude = None, 
-    longitude = None, 
+    data = df_hour,
+    latitude = 'pickup_lat', 
+    longitude = 'pickup_lon', 
     zoom = 4
 )
 

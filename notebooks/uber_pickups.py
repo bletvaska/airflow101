@@ -1,3 +1,4 @@
+import datetime
 from time import sleep
 
 import pandas as pd
@@ -85,12 +86,21 @@ if st.checkbox("Zobraziť dáta") is True:
     st.write(df)
 
 
-date = st.date_input("**Vyber dátum")
-date
-df["pickup"].dt.year
-df["pickup"].dt.date
+# date picker
+date = st.date_input(
+    label="**Vyber dátum**", 
+    value=datetime.date(2014, 1, 1), 
+    min_value=df["pickup"].min().date(), 
+    max_value=df["pickup"].max().date(),
+)
 
-data = df.groupby("pickup")["price"].sum()
+
+# Filter dataframe to only include rows with the selected date
+filtered_df = df.loc[df["pickup"].dt.date == date]
+# Group by hour and sum prices for each hour
+data = filtered_df.groupby(filtered_df["pickup"].dt.hour)["price"].sum()
+# Display bar chart with hourly price sums
 st.bar_chart(data, x_label="cas")
+
 
 "well done"

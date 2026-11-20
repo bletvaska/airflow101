@@ -6,34 +6,45 @@ import streamlit as st
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv('uber.csv', 
-        # index_col=0, 
+    df = pd.read_csv(
+        "uber.csv",
+        # index_col=0,
         header=0,
-        names=['key', 'dt', 'price', 'pickup', 'pickup_lon', 'pickup_lat', 'dropoff_lon', 'dropoff_lat', 'passengers'],
+        names=[
+            "key",
+            "dt",
+            "price",
+            "pickup",
+            "pickup_lon",
+            "pickup_lat",
+            "dropoff_lon",
+            "dropoff_lat",
+            "passengers",
+        ],
         dtype={
-                "passengers": "uint16",
-                "price": "float32",
-                "pickup_lon": "float32",
-                "pickup_lat": "float32",
-                "dropoff_lon": "float32",
-                "dropoff_lat": "float32",
-                "key": "uint32",
+            "passengers": "uint16",
+            "price": "float32",
+            "pickup_lon": "float32",
+            "pickup_lat": "float32",
+            "dropoff_lon": "float32",
+            "dropoff_lat": "float32",
+            "key": "uint32",
         },
-        #parse_dates=['dt', 'pickup'],
-        #date_format='%Y-%m-%d %H:%M:%S %Z',
+        # parse_dates=['dt', 'pickup'],
+        # date_format='%Y-%m-%d %H:%M:%S %Z',
     )
 
     # normalizing datetime columns
-    df['pickup'] = pd.to_datetime( 
-        df["pickup"], 
-        format="%Y-%m-%d %H:%M:%S UTC", 
-        utc=True, 
+    df["pickup"] = pd.to_datetime(
+        df["pickup"],
+        format="%Y-%m-%d %H:%M:%S UTC",
+        utc=True,
     ).dt.as_unit("s")
 
-    df['dt'] = pd.to_datetime( 
-        df["dt"], 
-        format="ISO8601", 
-        utc=True, 
+    df["dt"] = pd.to_datetime(
+        df["dt"],
+        format="ISO8601",
+        utc=True,
     ).dt.as_unit("s")
 
     sleep(9)
@@ -41,10 +52,17 @@ def load_data():
     return df
 
 
+# page configuration
+st.set_page_config(
+    page_title="Uber Taxi",
+    layout="centered",  # centered | wide
+    page_icon="🚕",
+)
+
+
 # st.title("Uber pickups in NYC")
 # st.image('https://www.investopedia.com/thmb/rRFyB5UPC1a0_X6AUSw8owO7eso=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/GettyImages-1923331422-852a4015c4534c60acd38b48dcd2c392.jpg')
 # st.text('Pozrieme sa bližšie na jednotlivé jazdy taxíkmi spoločnosťou Uber v meste New York.')
-
 
 
 """
@@ -58,19 +76,21 @@ Pozrieme sa bližšie na jednotlivé jazdy taxíkmi spoločnosťou **Uber** v me
 # "### Nahrávanie dát"
 st.subheader("Nahrávanie dát")
 
-data_load_state = st.text('Nahrávam dataset')
+data_load_state = st.text("Nahrávam dataset")
 df = load_data()
-data_load_state.text('Nahrávam dataset... Nahraté.')
+data_load_state.text("Nahrávam dataset... Nahraté.")
 
 # show/hide dataframe in app
-if st.checkbox('Zobraziť dáta') is True:
+if st.checkbox("Zobraziť dáta") is True:
     st.write(df)
 
 
 date = st.date_input("**Vyber dátum")
 date
+df["pickup"].dt.year
+df["pickup"].dt.date
 
-data = df.groupby('pickup')['price'].sum()
-st.bar_chart(data, x_label='cas')
+data = df.groupby("pickup")["price"].sum()
+st.bar_chart(data, x_label="cas")
 
 "well done"
